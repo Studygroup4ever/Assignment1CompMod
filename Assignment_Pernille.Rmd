@@ -132,11 +132,12 @@ We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is th
 
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
 ```{r}
-# Riccardo: 3 correct answers out of 6 questions
-dens <- 101
+# Equal for all: dens <- 101
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
 dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+# Riccardo: 3 correct answers out of 6 questions
 likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
 unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
@@ -147,10 +148,6 @@ riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_cla
 sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
 # Kristian: 2 correct answers out of 2 questions (then he gets bored)
-dens <- 101
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-prior <- rep(1 , dens)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
 unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
@@ -161,10 +158,6 @@ tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classi
 sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
 # Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-dens <- 101
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-prior <- rep(1 , dens)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 likelihood <- dbinom(160 , size = 198 , prob = p_grid)
 unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
@@ -175,10 +168,6 @@ daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classi
 sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
 # Mikkel: 66 correct answers out of 132 questions
-dens <- 101
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-prior <- rep(1 , dens)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 likelihood <- dbinom(66 , size = 132 , prob = p_grid)
 unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
@@ -192,13 +181,73 @@ sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 2a. Produce plots of the prior, and posterior for each teacher.
 ```{r}
 # PlotGrid
-cowplot::plot_grid(riccardo,tylen,daina,mikkel)
+teachers <- cowplot::plot_grid(riccardo,tylen,daina,mikkel)
+teachers
 ```
 
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
 3a. Produce plots of the prior and posterior for each teacher.
 
+```{r}
+#Equal for all: 
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- dnorm(p_grid, 0.8, 0.2)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+# Riccardo: 3 correct answers out of 6 questions
+likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+smarter_riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS - BUT NOW")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# Kristian: 2 correct answers out of 2 questions (then he gets bored)
+likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+smarter_tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Tylén's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("THEY'RE SMARTER (WE ASSUME...")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+likelihood <- dbinom(160 , size = 198 , prob = p_grid)
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+smarter_daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Daina's knowledge of CogSci")+ ylab("posterior probability")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# Mikkel: 66 correct answers out of 132 questions
+likelihood <- dbinom(66 , size = 132 , prob = p_grid)
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+smarter_mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Mikkel's knowledge of CogSci")+ ylab("posterior probability")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# PlotGrid
+smarter_teachers <- cowplot::plot_grid(smarter_riccardo,smarter_tylen,smarter_daina,smarter_mikkel)
+smarter_teachers
+```
+```{r}
+# Comparing prior_dumb and prior_smart
+teachers
+smarter_teachers
+```
 4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
+```{r}
+
+```
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
 
