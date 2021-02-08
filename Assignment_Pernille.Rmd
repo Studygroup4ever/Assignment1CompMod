@@ -76,7 +76,6 @@ pacman::p_load(tidyverse, rethinking)
 
 ```{r}
 ## CLEAN ##
-
 # defining
 dens <- 101
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
@@ -101,11 +100,7 @@ d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood 
 ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
 
 # Calculating the probability of him answering above 50% 
-# Vi leder efter 50% mark
-d[which(d$grid == 0.5), ]
-
-# It's 51, so:
-sum(d$posterior[51:101])/sum(d$posterior)
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
 ```
 - Then implement a quadratic approximation (hint check paragraph 2.4.2!).
@@ -138,16 +133,66 @@ We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is th
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
 ```{r}
 # Riccardo: 3 correct answers out of 6 questions
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
 # Kristian: 2 correct answers out of 2 questions (then he gets bored)
-# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-# Mikkel: 66 correct answers out of 132 questions
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Tylén's knowledge of CogSci")+ ylab("posterior probability")
 
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+likelihood <- dbinom(160 , size = 198 , prob = p_grid)
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Daina's knowledge of CogSci")+ ylab("posterior probability")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+# Mikkel: 66 correct answers out of 132 questions
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+likelihood <- dbinom(66 , size = 132 , prob = p_grid)
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Mikkel's knowledge of CogSci")+ ylab("posterior probability")
+
+# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 ```
 
 2a. Produce plots of the prior, and posterior for each teacher.
 ```{r}
-
+# PlotGrid
+cowplot::plot_grid(riccardo,tylen,daina,mikkel)
 ```
 
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
