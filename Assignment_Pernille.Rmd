@@ -101,11 +101,11 @@ d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood 
 ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
 
 # Calculating the probability of him answering above 50% 
-# Vi leder efter 50%
+# Vi leder efter 50% mark
 d[which(d$grid == 0.5), ]
-sum(d$posterior[(which.max(d$posterior)+1):100])/sum(d$posterior) #50%, +1 for taking the next point (why?) 
-sum(d$posterior[(which.max(d$posterior)):100])/sum(d$posterior) #49%
 
+# It's 51, so:
+sum(d$posterior[51:101])/sum(d$posterior)
 
 ```
 - Then implement a quadratic approximation (hint check paragraph 2.4.2!).
