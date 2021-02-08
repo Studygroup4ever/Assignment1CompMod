@@ -78,7 +78,7 @@ pacman::p_load(tidyverse, rethinking)
 ## CLEAN ##
 
 # defining
-dens <- 999
+dens <- 101
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 
 prior <- rep(1 , dens)
@@ -136,6 +136,15 @@ area_above_50 <- sum(p$y[which(p$x == 0.5)]:length(p$y))/sum(p$y)
 We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is the sd, of 0.16. We read this like: "Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16". 
 
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+```{r}
+# Riccardo: 3 correct answers out of 6 questions
+
+# Kristian: 2 correct answers out of 2 questions (then he gets bored)
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+# Mikkel: 66 correct answers out of 132 questions
+
+```
+
 2a. Produce plots of the prior, and posterior for each teacher.
 ```{r}
 
