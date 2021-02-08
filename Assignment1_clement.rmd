@@ -80,24 +80,240 @@ max(d$posterior)
 ?dbinom
 ?quap
 
-riccardo.qa <- quap(
-alist
-(p ~ dunif(0,1), # uniform prior
-C ~ dbinom(C + W, p) # binomial likelihood
+globe.qa <- quap(
+alist(
+  C ~ dbinom(C+W ,p) , # binomial likelihood
+  p ~ dunif(0,1) # uniform prior
 ) ,
-data=list(C=3,W=6) )
+data=list(C=3,W=3) )
 # display summary of quadratic approximation
 precis( globe.qa )
+```
+
+#Pernille's code
+```{r}
+
+# analytical calculation and plot of quadratic approximation
+W <- 3
+C <- 3
+curve(dbeta(x,W+1,C+1), from = 0, to = 1)
+
+curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE)
+
+# getting values from curve thing
+p <- curve(dnorm(x,0.5,0.1), lty = 2, add = TRUE)
+
+area_above_50 <- sum(p$y[which(p$x == 0.5)]:length(p$y))/sum(p$y)
+
 ```
 
 
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
 2a. Produce plots of the prior, and posterior for each teacher.
 
+- Riccardo: 3 correct answers out of 6 questions
+- Kristian: 2 correct answers out of 2 questions (then he gets bored)
+- Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+- Mikkel: 66 correct answers out of 132 questions
+```{r}
+dens2 <- 10001
+p_grid2 <- seq(from = 0 , to = 1 , length.out = dens)
+prior2 <- rep( 1 , dens ) 
+
+likelihood_ric <- dbinom( 3 , size = 6 , prob = p_grid )
+likelihood_tylen <- dbinom( 2 , size = 2 , prob = p_grid )
+likelihood_daina <- dbinom( 160 , size = 198 , prob = p_grid )
+likelihood_mikkel <- dbinom( 66 , size = 132 , prob = p_grid )
+
+likelihoods <- list(likelihood_ric,likelihood_tylen,likelihood_daina,likelihood_mikkel)
+
+unstd.posterior_ric <- likelihood_ric * prior
+unstd.posterior_tylen <- likelihood_tylen * prior
+unstd.posterior_daina <- likelihood_daina * prior
+unstd.posterior_mikkel <- likelihood_mikkel * prior
+
+#Standardize the posterior (so it sums to 1)
+posterior_ric <- unstd.posterior_ric / sum(unstd.posterior_ric)
+posterior_tylen <- unstd.posterior_tylen / sum(unstd.posterior_tylen)
+posterior_daina <- unstd.posterior_daina / sum(unstd.posterior_daina)
+posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
+
+#Draw the plot
+d2_ric <- data.frame(grid = p_grid2, posterior_ric = posterior_ric, prior2 = prior2, likelihood_ric = likelihood_ric)
+
+ric <- ggplot(d2_ric, aes(grid,posterior_ric)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_tylen <- data.frame(grid = p_grid2, posterior_tylen = posterior_tylen, prior2 = prior2, likelihood_tylen = likelihood_tylen)
+
+tylen <- ggplot(d2_tylen, aes(grid,posterior_tylen)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Tylen Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_daina <- data.frame(grid = p_grid2, posterior_daina = posterior_daina, prior2 = prior2, likelihood_daina = likelihood_daina)
+
+daina <- ggplot(d2_daina, aes(grid,posterior_daina)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Daina Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_mikkel <- data.frame(grid = p_grid2, posterior_mikkel = posterior_mikkel, prior2 = prior2, likelihood_mikkel = likelihood_mikkel)
+
+mikkel <- ggplot(d2_mikkel, aes(grid,posterior_mikkel)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Mikkel Knowledge of CogSci") + ylab("posterior probability")
+
+# PlotGrid
+cowplot::plot_grid(ric,tylen,daina,mikkel)
+
+```
+
+
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
 3a. Produce plots of the prior and posterior for each teacher.
 
+```{r}
+dens2 <- 10001
+p_grid2 <- seq(from = 0 , to = 1 , length.out = dens2)
+prior2 <- dnorm(p_grid2, 0.8, 0.2) 
+
+
+likelihood_ric <- dbinom( 3 , size = 6 , prob = p_grid )
+likelihood_tylen <- dbinom( 2 , size = 2 , prob = p_grid )
+likelihood_daina <- dbinom( 160 , size = 198 , prob = p_grid )
+likelihood_mikkel <- dbinom( 66 , size = 132 , prob = p_grid )
+
+likelihoods <- list(likelihood_ric,likelihood_tylen,likelihood_daina,likelihood_mikkel)
+
+unstd.posterior_ric <- likelihood_ric * prior
+unstd.posterior_tylen <- likelihood_tylen * prior
+unstd.posterior_daina <- likelihood_daina * prior
+unstd.posterior_mikkel <- likelihood_mikkel * prior
+
+#Standardize the posterior (so it sums to 1)
+posterior_ric <- unstd.posterior_ric / sum(unstd.posterior_ric)
+posterior_tylen <- unstd.posterior_tylen / sum(unstd.posterior_tylen)
+posterior_daina <- unstd.posterior_daina / sum(unstd.posterior_daina)
+posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
+
+#Draw the plot
+d2_ric <- data.frame(grid = p_grid2, posterior_ric = posterior_ric, prior2 = prior2, likelihood_ric = likelihood_ric)
+
+ric <- ggplot(d2_ric, aes(grid,posterior_ric)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_tylen <- data.frame(grid = p_grid2, posterior_tylen = posterior_tylen, prior2 = prior2, likelihood_tylen = likelihood_tylen)
+
+tylen <- ggplot(d2_tylen, aes(grid,posterior_tylen)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Tylen Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_daina <- data.frame(grid = p_grid2, posterior_daina = posterior_daina, prior2 = prior2, likelihood_daina = likelihood_daina)
+
+daina <- ggplot(d2_daina, aes(grid,posterior_daina)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Daina Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_mikkel <- data.frame(grid = p_grid2, posterior_mikkel = posterior_mikkel, prior2 = prior2, likelihood_mikkel = likelihood_mikkel)
+
+mikkel <- ggplot(d2_mikkel, aes(grid,posterior_mikkel)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Mikkel Knowledge of CogSci") + ylab("posterior probability")
+
+# PlotGrid
+cowplot::plot_grid(ric,tylen,daina,mikkel)
+```
+
+
 4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
+
+```{r}
+###WITH NORMAL DIST. PRIOR###
+dens2 <- 1001
+p_grid2 <- seq(from = 0 , to = 1 , length.out = dens)
+prior2 <- dnorm(p_grid2, 0.8, 0.2)
+
+likelihood_ric <- dbinom( 300 , size = 600 , prob = p_grid )
+likelihood_tylen <- dbinom( 200 , size = 200 , prob = p_grid )
+likelihood_daina <- dbinom( 16000 , size = 19800 , prob = p_grid )
+likelihood_mikkel <- dbinom( 6600 , size = 13200 , prob = p_grid )
+
+likelihoods <- list(likelihood_ric,likelihood_tylen,likelihood_daina,likelihood_mikkel)
+
+unstd.posterior_ric <- likelihood_ric * prior
+unstd.posterior_tylen <- likelihood_tylen * prior
+unstd.posterior_daina <- likelihood_daina * prior
+unstd.posterior_mikkel <- likelihood_mikkel * prior
+
+#Standardize the posterior (so it sums to 1)
+posterior_ric <- unstd.posterior_ric / sum(unstd.posterior_ric)
+posterior_tylen <- unstd.posterior_tylen / sum(unstd.posterior_tylen)
+posterior_daina <- unstd.posterior_daina / sum(unstd.posterior_daina)
+posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
+
+#Draw the plot
+d2_ric <- data.frame(grid = p_grid2, posterior_ric = posterior_ric, prior2 = prior2, likelihood_ric = likelihood_ric)
+
+ric <- ggplot(d2_ric, aes(grid,posterior_ric)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_tylen <- data.frame(grid = p_grid2, posterior_tylen = posterior_tylen, prior2 = prior2, likelihood_tylen = likelihood_tylen)
+
+tylen <- ggplot(d2_tylen, aes(grid,posterior_tylen)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Tylen Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_daina <- data.frame(grid = p_grid2, posterior_daina = posterior_daina, prior2 = prior2, likelihood_daina = likelihood_daina)
+
+daina <- ggplot(d2_daina, aes(grid,posterior_daina)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Daina Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_mikkel <- data.frame(grid = p_grid2, posterior_mikkel = posterior_mikkel, prior2 = prior2, likelihood_mikkel = likelihood_mikkel)
+
+mikkel <- ggplot(d2_mikkel, aes(grid,posterior_mikkel)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Mikkel Knowledge of CogSci") + ylab("posterior probability")
+
+# PlotGrid
+cowplot::plot_grid(ric,tylen,daina,mikkel)
+```
+
+```{r}
+####WITH UNIFORM PRIOR####
+dens2 <- 1001
+p_grid2 <- seq(from = 0 , to = 1 , length.out = dens)
+prior2 <- rep( 1 , dens ) 
+
+likelihood_ric <- dbinom( 300 , size = 600 , prob = p_grid )
+likelihood_tylen <- dbinom( 200 , size = 200 , prob = p_grid )
+likelihood_daina <- dbinom( 16000 , size = 19800 , prob = p_grid )
+likelihood_mikkel <- dbinom( 6600 , size = 13200 , prob = p_grid )
+
+likelihoods <- list(likelihood_ric,likelihood_tylen,likelihood_daina,likelihood_mikkel)
+
+unstd.posterior_ric <- likelihood_ric * prior
+unstd.posterior_tylen <- likelihood_tylen * prior
+unstd.posterior_daina <- likelihood_daina * prior
+unstd.posterior_mikkel <- likelihood_mikkel * prior
+
+#Standardize the posterior (so it sums to 1)
+posterior_ric <- unstd.posterior_ric / sum(unstd.posterior_ric)
+posterior_tylen <- unstd.posterior_tylen / sum(unstd.posterior_tylen)
+posterior_daina <- unstd.posterior_daina / sum(unstd.posterior_daina)
+posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
+
+#Draw the plot
+d2_ric <- data.frame(grid = p_grid2, posterior_ric = posterior_ric, prior2 = prior2, likelihood_ric = likelihood_ric)
+
+ric <- ggplot(d2_ric, aes(grid,posterior_ric)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_tylen <- data.frame(grid = p_grid2, posterior_tylen = posterior_tylen, prior2 = prior2, likelihood_tylen = likelihood_tylen)
+
+tylen <- ggplot(d2_tylen, aes(grid,posterior_tylen)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Tylen Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_daina <- data.frame(grid = p_grid2, posterior_daina = posterior_daina, prior2 = prior2, likelihood_daina = likelihood_daina)
+
+daina <- ggplot(d2_daina, aes(grid,posterior_daina)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Daina Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_mikkel <- data.frame(grid = p_grid2, posterior_mikkel = posterior_mikkel, prior2 = prior2, likelihood_mikkel = likelihood_mikkel)
+
+mikkel <- ggplot(d2_mikkel, aes(grid,posterior_mikkel)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Mikkel Knowledge of CogSci") + ylab("posterior probability")
+
+# PlotGrid
+cowplot::plot_grid(ric,tylen,daina,mikkel)
+```
+
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
 
