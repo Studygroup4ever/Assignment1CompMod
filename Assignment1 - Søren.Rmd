@@ -62,17 +62,30 @@ unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
 
 #Draw the plot
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+d <- data.frame(grid = p_grid, 
+                posterior = posterior, 
+                prior = prior, 
+                likelihood = likelihood)
 
-ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
+d %>% ggplot(aes(grid, posterior)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_classic() + 
+  geom_line(aes(grid, prior / dens), color = 'red') + 
+  xlab("Knowledge of CogSci") + 
+  ylab("posterior probability")
 
-# Calculating the probability of him answering above 50% 
+# Calculating the probability of him answering above 50% using the posteriors
 sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
 
+# Calculating the probability of him answering above 50% using samples from the posteriors
+samples <- sample(p_grid, 
+                  prob=posterior, 
+                  size=1e5, 
+                  replace=TRUE)
 
-samples <- sample( p_grid , prob=posterior , size=1e5 , replace=TRUE )
-plot(samples)
-dens(samples)
+samples %>% plot()
+samples %>% dens()
 
 length(subset(samples, samples>=0.5))/length(samples)
 ```
@@ -94,12 +107,18 @@ precis(riccardo.qa)
 W <- 3
 C <- 3
 
-curve(dbeta(x, W + 1, C + 1), from = 0, to = 1)
+curve(dbeta(x, W + 1, C + 1), 
+      from = 0, 
+      to = 1)
 
-curve(dnorm(x, 0.5, 0.2), lty = 2, add = TRUE)
+curve(dnorm(x, 0.5, 0.2), 
+      lty = 2, 
+      add = TRUE)
 
 # getting values from curve thing
-p <- curve(dnorm(x, 0.5, 0.2), lty = 2, add = TRUE)
+p <- curve(dnorm(x, 0.5, 0.2), 
+           lty = 2, 
+           add = TRUE)
 
 sum(p$y[which(p$x == 0.5)]:length(p$y)) / sum(p$y)
 
