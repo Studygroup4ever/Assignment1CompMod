@@ -207,7 +207,7 @@ FindMyPosteriors <- function(correct, total, prior, p_grid) {
     prior = prior,
     likelihood = likelihood)
   
-  p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? When it has already been done? 
+  p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
 
   df = data.frame(p_grid,unstd.posterior,likelihood,posterior,prior,p_over_0.5)
    plot <-
