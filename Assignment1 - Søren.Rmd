@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(pacman)
 
-p_load(tidyverse, ggplot2, brms, rethinking)
+p_load(rethinking, tidyverse, ggplot2, cowplot)
 ```
 
 
@@ -40,64 +40,234 @@ Questions:
 
 1. What's Riccardo's estimated knowledge of CogSci? What is the probability he knows more than chance (0.5) [try figuring this out. if you can't peek into chapters 3.1 and 3.2 and/or the slides]?
 
-- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results.
+- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
+
+```{r}
+## CLEAN ##
+# defining the density, grit and uniform prior
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+
+# test prior
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+#Computing the likelihood at each value in grid
+likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
+
+# Compute the posterior (likelihood by prior)
+unstd.posterior <- likelihood * prior
+
+# Standardize the posterior (so it sums to 1)
+posterior <- unstd.posterior / sum(unstd.posterior)
+
+#Draw the plot
+d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+
+ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
+
+# Calculating the probability of him answering above 50% 
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+
+samples <- sample( p_grid , prob=posterior , size=1e5 , replace=TRUE )
+plot(samples)
+dens(samples)
+
+length(subset(samples, samples>=0.5))/length(samples)
+```
 
 - Then implement a quadratic approximation (hint check paragraph 2.4.2!).
 
 - N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
 
 ```{r}
-dens <- 101
+# Quardratic approximation
+riccardo.qa <- quap(alist(W ~ dbinom(C + W, p), # binomial likelihood
+                       p ~ dunif(0, 1)), # uniform prior
+                 data = list(C = 3, W = 3))
 
-p_grid <- seq(from = 0 ,
-              to = 1 ,
-              length.out = dens)
+# display summary of quadratic approximation
+precis(riccardo.qa)
 
-prior <- rep(1 , dens) # Flat
-# prior <- ifelse(p_grid < 0.5 , 0 , 1) # UnreasonablyOptimisticPrior
-# prior <- dnorm(p_grid, 0.5, 0.1) # SensiblyCenteredAtChance
+# analytical calculation and plot of quadratic approximation
+W <- 3
+C <- 3
 
- dens(rbinom(1e4, 9, runif(1e4, 0, 1)))
-# dens(rbinom(1e4, 9, runif(1e4, 0.5, 1)))
-# dens(rbinom(1e4, 9, rnorm(1e4, 0.5, 0.1)))
+curve(dbeta(x, W + 1, C + 1), from = 0, to = 1)
 
-likelihood <- dbinom(3, size = 6, prob = p_grid)
+curve(dnorm(x, 0.5, 0.2), lty = 2, add = TRUE)
 
-unstd.posterior <- likelihood * prior
+# getting values from curve thing
+p <- curve(dnorm(x, 0.5, 0.2), lty = 2, add = TRUE)
 
-posterior <- unstd.posterior / sum(unstd.posterior)
+sum(p$y[which(p$x == 0.5)]:length(p$y)) / sum(p$y)
 
-d <-
-  data.frame(
-    grid = p_grid,
-    posterior = posterior,
-    prior = prior,
-    likelihood = likelihood
-  )
+```
 
-d %>% ggplot(aes(grid, posterior)) +  
-  geom_point() + 
-  geom_line() + 
-  theme_classic() +  
-  geom_line(aes(grid, prior / dens), color = 'red') +  
-  xlab("Knowledge of CogSci")+ ylab("posterior probability")
+We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is the sd, of 0.16. We read this like: "Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16". 
 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+
+```{r}
+# We are going to make a lot of plots, so we'll collect the code for plots in a function
+post.dist.plot <- function(correct, wrong) {
+  likelihood <-
+    dbinom(correct , size = correct + wrong , prob = p_grid)
+  
+  unstd.posterior <- likelihood * prior
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  d <-
+    data.frame(
+      grid = p_grid,
+      posterior = posterior,
+      prior = prior,
+      likelihood = likelihood
+    )
+  
+  plot <- d %>% ggplot(
+    aes(grid, posterior)) + 
+    geom_point() + geom_line() + theme_classic() + 
+    geom_line(aes(grid, prior / dens), color = 'red') + ylab("posterior probability")
+  
+  return(plot)
+}
 
 ```
 
 
 
+```{r}
+# Equal for all: 
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+#dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 
-2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+# Riccardo: 3 correct answers out of 6 questions
+riccardo <- post.dist.plot(3, 3) + 
+  xlab("Riccardo's knowledge of CogSci") + 
+  ggtitle("AMAZING 4-PLOTS")
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+tylen <- post.dist.plot(2, 0) + 
+  xlab("Tylen's knowledge of CogSci")
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+daina <- post.dist.plot(160, 38) + 
+  xlab("Daina's knowledge of CogSci")
+
+# Mikkel: 66 correct answers out of 132 questions
+wallentin <- post.dist.plot(66, 66) + 
+  xlab("Wallentin's knowledge of CogSci")
+
+```
+
 2a. Produce plots of the prior, and posterior for each teacher.
+```{r}
+# PlotGrid
+(
+  teachers <- 
+  cowplot::plot_grid(riccardo, 
+                     tylen, 
+                     daina, 
+                     wallentin)
+ )
+```
 
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
 3a. Produce plots of the prior and posterior for each teacher.
 
+```{r}
+#Equal for all: 
+dens <- 101
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- dnorm(p_grid, 0.8, 0.2)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+# Riccardo: 3 correct answers out of 6 questions
+smarter_riccardo <- post.dist.plot(3, 3) + 
+  xlab("Riccardo's knowledge of CogSci") + 
+  ggtitle("AMAZING 4-PLOTS")
+
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+smarter_tylen <- post.dist.plot(2, 0) + 
+  xlab("Tylen's knowledge of CogSci")
+
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+smarter_daina <- post.dist.plot(160, 38) + 
+  xlab("Daina's knowledge of CogSci")
+
+# Mikkel: 66 correct answers out of 132 questions
+smarter_wallentin <- post.dist.plot(66, 66) + 
+  xlab("Wallentin's knowledge of CogSci")
+
+# PlotGrid
+(
+  smarter_teachers <-
+  cowplot::plot_grid(smarter_riccardo,
+                     smarter_tylen,
+                     smarter_daina,
+                     smarter_wallentin)
+  )
+```
+
+
+```{r}
+# Comparing prior_dumb and prior_smart
+teachers
+smarter_teachers
+```
 4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
 
+```{r}
+#Equal for all: 
+dens <- 1000
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- dnorm(p_grid, 0.8, 0.2)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+# Riccardo: 300 correct answers out of 600 questions
+moredata_riccardo <- post.dist.plot(300, 300) + 
+  xlab("Riccardo's knowledge of CogSci") + 
+  ggtitle("AMAZING 4-PLOTS")
+
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+moredata_tylen <- post.dist.plot(200, 0) + 
+  xlab("Tylen's knowledge of CogSci")
+
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+moredata_daina <- post.dist.plot(16000, 3800) + 
+  xlab("Daina's knowledge of CogSci")
+
+# Mikkel: 66 correct answers out of 132 questions
+moredata_wallentin <- post.dist.plot(6600, 6600) + 
+  xlab("Wallentin's knowledge of CogSci")
+
+# PlotGrid
+(
+  smarter_teachers <-
+  cowplot::plot_grid(moredata_riccardo,
+                     moredata_tylen,
+                     moredata_daina,
+                     moredata_wallentin)
+  )
+
+```
+
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
+
+```{r}
+
+```
+
+
 
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
 
