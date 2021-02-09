@@ -9,6 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(pacman)
+
+p_load(tidyverse, ggplot2, brms, rethinking)
+```
+
+
+
 ## In this assignment we learn how to assess rates from a binomial distribution, using the case of assessing your teachers' knowledge of CogSci
 
 N.B. this markdown has 2 parts as it spans 2 weeks of teaching
@@ -31,9 +39,55 @@ This is the data:
 Questions:
 
 1. What's Riccardo's estimated knowledge of CogSci? What is the probability he knows more than chance (0.5) [try figuring this out. if you can't peek into chapters 3.1 and 3.2 and/or the slides]?
-- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
+
+- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results.
+
 - Then implement a quadratic approximation (hint check paragraph 2.4.2!).
+
 - N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
+
+```{r}
+dens <- 101
+
+p_grid <- seq(from = 0 ,
+              to = 1 ,
+              length.out = dens)
+
+prior <- rep(1 , dens) # Flat
+# prior <- ifelse(p_grid < 0.5 , 0 , 1) # UnreasonablyOptimisticPrior
+# prior <- dnorm(p_grid, 0.5, 0.1) # SensiblyCenteredAtChance
+
+ dens(rbinom(1e4, 9, runif(1e4, 0, 1)))
+# dens(rbinom(1e4, 9, runif(1e4, 0.5, 1)))
+# dens(rbinom(1e4, 9, rnorm(1e4, 0.5, 0.1)))
+
+likelihood <- dbinom(3, size = 6, prob = p_grid)
+
+unstd.posterior <- likelihood * prior
+
+posterior <- unstd.posterior / sum(unstd.posterior)
+
+d <-
+  data.frame(
+    grid = p_grid,
+    posterior = posterior,
+    prior = prior,
+    likelihood = likelihood
+  )
+
+d %>% ggplot(aes(grid, posterior)) +  
+  geom_point() + 
+  geom_line() + 
+  theme_classic() +  
+  geom_line(aes(grid, prior / dens), color = 'red') +  
+  xlab("Knowledge of CogSci")+ ylab("posterior probability")
+
+sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+
+```
+
+
+
 
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
 2a. Produce plots of the prior, and posterior for each teacher.
