@@ -188,15 +188,15 @@ teachers
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
 3a. Produce plots of the prior and posterior for each teacher.
 
-# # Function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
+# Function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
 ```{r}
-#pre-specify what you want these two values to be before running the function, can be implemented in function but since it will prob be equal in the next points in the assignments i thought meh 
+#pre-specify what you want these two values to be before running the function, can be implemented in function but since it will prob be equal in the next points in the assignments I thought meh 
 dens = 202
 p_grid <- seq(from = 0 ,
                 to = 1 ,
                 length.out = dens)
 
-# function - returns a df and a plot
+# function - returns a df and a plot. NB: dens and p_grid are pre-specified as of now as it says above.
 FindMyPosteriors <- function(correct, total, prior, p_grid) {
   likelihood <- dbinom(correct , size = total , prob = p_grid)
   unstd.posterior <- likelihood*prior
@@ -217,8 +217,8 @@ FindMyPosteriors <- function(correct, total, prior, p_grid) {
 }
 
 # access df in object[[1]] and access plot in object[[2]]
-t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid = seq(from = 0 , to = 1 ,length.out = dens))
-t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid = seq(from = 0 , to = 1 ,length.out = dens))
+t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid))
+t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid))
 
 t_uniform[[1]] #df
 t_uniform[[2]] #plot
