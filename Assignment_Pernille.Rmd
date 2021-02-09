@@ -217,8 +217,8 @@ FindMyPosteriors <- function(correct, total, prior, p_grid) {
 }
 
 # access df in object[[1]] and access plot in object[[2]]
-t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid))
-t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid))
+t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid)
+t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid)
 
 t_uniform[[1]] #df
 t_uniform[[2]] #plot
