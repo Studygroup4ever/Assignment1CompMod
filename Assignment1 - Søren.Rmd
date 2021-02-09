@@ -45,7 +45,7 @@ Questions:
 ```{r}
 ## CLEAN ##
 # defining the density, grit and uniform prior
-dens <- 101
+dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
 
@@ -76,7 +76,7 @@ d %>% ggplot(aes(grid, posterior)) +
   ylab("posterior probability")
 
 # Calculating the probability of him answering above 50% using the posteriors
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+sum( posterior[ p_grid < 0.5 ] )
 
 # Calculating the probability of him answering above 50% using samples from the posteriors
 samples <- sample(p_grid, 
@@ -88,6 +88,10 @@ samples %>% plot()
 samples %>% dens()
 
 length(subset(samples, samples>=0.5))/length(samples)
+
+
+sum( samples > 0.5 )/length(samples)
+
 ```
 
 - Then implement a quadratic approximation (hint check paragraph 2.4.2!).
