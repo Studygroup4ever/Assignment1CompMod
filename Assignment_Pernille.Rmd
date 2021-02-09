@@ -226,62 +226,99 @@ t_uniform[[2]] #plot
 t_norm[[1]] #df
 t_norm[[2]] #plot
 ```
-
+## Using function to find teachers smarter knowledge
 ```{r}
-#Equal for all: 
-dens <- 101
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-prior <- dnorm(p_grid, 0.8, 0.2)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
-
-# Riccardo: 3 correct answers out of 6 questions
-likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-smarter_riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS - BUT NOW")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Kristian: 2 correct answers out of 2 questions (then he gets bored)
-likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-smarter_tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Tylén's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("THEY'RE SMARTER (WE ASSUME...")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-likelihood <- dbinom(160 , size = 198 , prob = p_grid)
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-smarter_daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Daina's knowledge of CogSci")+ ylab("posterior probability")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Mikkel: 66 correct answers out of 132 questions
-likelihood <- dbinom(66 , size = 132 , prob = p_grid)
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-smarter_mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Mikkel's knowledge of CogSci")+ ylab("posterior probability")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# PlotGrid
-smarter_teachers <- cowplot::plot_grid(smarter_riccardo,smarter_tylen,smarter_daina,smarter_mikkel)
-smarter_teachers
+# Information equal for all teachers
+dens = 101
+p_grid = seq(from = 0 , to = 1 , length.out = dens)
+prior = dnorm(p_grid, 0.8,0.2)
+dens(rbinom(1e4, 9, runif(1e4,0,1))) # Checking prior, not sure I understand the numbers here
 ```
+
+
 ```{r}
-# Comparing prior_dumb and prior_smart
-teachers
-smarter_teachers
+# Riccardo: 3 correct out of 6 total 
+SmarterRiccardo <- FindMyPosteriors(correct = 3,total = 6, prior = prior, p_grid = p_grid)
+SmarterRiccardo[[1]] # 0.83 - Is it right? So that's 83% probability summed up that Riccardos knowledge of CogSci is over 50%? Formulation of this answer instead: is it the same as saying there is 83% probability taking both prior and data into account that Riccardo answers more right than chance level? 
+SmarterRiccardo[[2]]+ggtitle("Smarter Riccardo's knowledge of CogSci") # I want a line put at the above 50 level, preferably that it fills out the area
+
+# Kristian: 2 correct out of 2 total (gets bored)
+SmarterTylén <- FindMyPosteriors(correct = 2, total = 2, prior = prior, p_grid = p_grid)
+SmarterTylén[[1]] # p_over_5: 0.97. Is it right? Makes sense? 
+SmarterTylén[[2]]+ggtitle("Smarter Tylén's knowledge of CogSci")
+
+# Daina: 160 correct out of 198 questions (never gets bored)
+SmarterDaina <- FindMyPosteriors(correct = 160, total = 198, prior = prior, p_grid = p_grid)
+SmarterDaina[[1]] # p_over 50 = 1
+SmarterDaina[[2]]+ggtitle("Smarter Daina's knowledge of CogSci") #wow
+
+# Mikkel: 66 correct answers out of 132 questions (Mikkel: He's just like us)
+SmarterMikkel <- FindMyPosteriors(correct = 66, total = 132, prior = prior, p_grid = p_grid)
+SmarterMikkel[[1]] #p_over_50 = 0.57
+SmarterMikkel[[2]]+ggtitle("Smarter Mikkel's knowledge of CogSci")
+
+# Collecting the plotsin a PlotGrid
+Smarter_teachers <-
+  cowplot::plot_grid(
+    SmarterRiccardo[[2]] + ggtitle("Smarter Riccardo"),
+    SmarterTylén[[2]] + ggtitle("Smarter Tylén"),
+    SmarterDaina[[2]] + ggtitle("Smarter Daina"),
+    SmarterMikkel[[2]] + ggtitle("Smarter Mikkel")
+  )
+Smarter_teachers
+
+```
+
+```{r}
+# # OLD OLD OLD OLD OLD BUT DONT DELETE JUST YET
+# # Riccardo: 3 correct answers out of 6 questions
+# likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
+# unstd.posterior <- likelihood * prior
+# posterior <- unstd.posterior / sum(unstd.posterior)
+# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+# smarter_riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS - BUT NOW")
+# 
+# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+# 
+# # Kristian: 2 correct answers out of 2 questions (then he gets bored)
+# likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
+# unstd.posterior <- likelihood * prior
+# posterior <- unstd.posterior / sum(unstd.posterior)
+# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+# smarter_tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Tylén's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("THEY'RE SMARTER (WE ASSUME...")
+# 
+# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+# 
+# # Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+# likelihood <- dbinom(160 , size = 198 , prob = p_grid)
+# unstd.posterior <- likelihood * prior
+# posterior <- unstd.posterior / sum(unstd.posterior)
+# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+# smarter_daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Daina's knowledge of CogSci")+ ylab("posterior probability")
+# 
+# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+# 
+# # Mikkel: 66 correct answers out of 132 questions
+# likelihood <- dbinom(66 , size = 132 , prob = p_grid)
+# unstd.posterior <- likelihood * prior
+# posterior <- unstd.posterior / sum(unstd.posterior)
+# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
+# smarter_mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Mikkel's knowledge of CogSci")+ ylab("posterior probability")
+# 
+# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
+# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+# 
+# # PlotGrid
+# smarter_teachers <- cowplot::plot_grid(smarter_riccardo,smarter_tylen,smarter_daina,smarter_mikkel)
+# smarter_teachers
+# ```
+# ```{r}
+# # Comparing prior_dumb and prior_smart
+# teachers
+# smarter_teachers
 ```
 4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
 ```{r}
