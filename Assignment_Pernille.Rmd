@@ -188,6 +188,45 @@ teachers
 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
 3a. Produce plots of the prior and posterior for each teacher.
 
+# # Function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
+```{r}
+#pre-specify what you want these two values to be before running the function, can be implemented in function but since it will prob be equal in the next points in the assignments i thought meh 
+dens = 202
+p_grid <- seq(from = 0 ,
+                to = 1 ,
+                length.out = dens)
+
+# function - returns a df and a plot
+FindMyPosteriors <- function(correct, total, prior, p_grid) {
+  likelihood <- dbinom(correct , size = total , prob = p_grid)
+  unstd.posterior <- likelihood*prior
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  d <- data.frame(
+    grid = p_grid,
+    posterior = posterior,
+    prior = prior,
+    likelihood = likelihood)
+  
+  p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? When it has already been done? 
+
+  df = data.frame(p_grid,unstd.posterior,likelihood,posterior,prior,p_over_0.5)
+   plot <-
+    ggplot(d, aes(grid, posterior)) + geom_point() + geom_line() + theme_classic() + geom_line(aes(grid, prior /dens), color = 'red') + xlab("Knowledge of CogSci") + ylab("posterior probability") + ggtitle("Plot From function")
+   
+  return(list(df,plot))
+}
+
+# access df in object[[1]] and access plot in object[[2]]
+t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid = seq(from = 0 , to = 1 ,length.out = dens))
+t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid = seq(from = 0 , to = 1 ,length.out = dens))
+
+t_uniform[[1]] #df
+t_uniform[[2]] #plot
+
+t_norm[[1]] #df
+t_norm[[2]] #plot
+```
+
 ```{r}
 #Equal for all: 
 dens <- 101
@@ -250,8 +289,14 @@ smarter_teachers
 ```
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
+```{r}
+
+```
 
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
+```{r}
+
+```
 
 ### Second part: Focusing on predictions
 
