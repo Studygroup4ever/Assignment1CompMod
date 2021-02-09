@@ -30,62 +30,24 @@ This is the data:
 
 Questions:
 
-1. What's Riccardo's estimated knowledge of CogSci? What is the probability he knows more than chance (0.5) [try figuring this out. if you can't peek into chapters 3.1 and 3.2 and/or the slides]?
-```{r}
-### DRAFT ###
-#Setup
-pacman::p_load(tidyverse)
+# 1. What's Riccardo's estimated knowledge of CogSci? What is the probability he knows more than chance (0.5) [try figuring this out. if you can't peek into chapters 3.1 and 3.2 and/or the slides]?
+## - First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
 
-# Define the grid
-dens <- 999
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-
-# Define the prior
-prior <- rep(1 , dens)
-# Flat, equally likely whether he answers right or wrong. Given he is a professor, we could assume that he # If we want to figure out if he knows more than chance. If we assume that he knows more than chance. 
-
-# prior <- ifelse(p_grid < 0.5 , 0 , 1) # UnreasonablyOptimisticPrior
-# prior <- dnorm(p_grid, 0.5, 0.1) # SensiblyCenteredAtChance
-
-#Test the prior (does it look crazy?)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1)))
-#dens(rbinom(1e4, 9, runif(1e4, 0.5, 1)))
-#dens(rbinom(1e4, 9, rnorm(1e4, 0.5, 0.1))) 
-
-#Compute the likelihood at each value in grid
-likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. UNDERSTAND THIS. 
-
-# Compute the posterior (likelihood by prior)
-unstd.posterior <- likelihood * prior
-
-# Standardize the posterior (so it sums to 1)
-posterior <- unstd.posterior / sum(unstd.posterior) #area under the curve is going to be one so that it is a probability distribution
-
-#Draw the plot
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-
-ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
-
-```
-
-- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
-```{r}
+```{r setup, include = TRUE}
 pacman::p_load(tidyverse, rethinking)
 ```
 
-
+### Manually first for overview - making a function after
 ```{r}
-## CLEAN ##
-# defining
+# Defining things
 dens <- 101
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-
 prior <- rep(1 , dens)
 
-# test prior
+# Test prior - does it look crazy?
 dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 
-#Computing the likelihood at each value in grid
+# Computing the likelihood at each value in grid
 likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
 
 # Compute the posterior (likelihood by prior)
@@ -94,109 +56,59 @@ unstd.posterior <- likelihood * prior
 # Standardize the posterior (so it sums to 1)
 posterior <- unstd.posterior / sum(unstd.posterior)
 
-#Draw the plot
+# Making a dataframe and making the plot
 d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
 
 ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
 
 # Calculating the probability of him answering above 50% 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
+#sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
+p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
+p_over_0.5 #0.48 - før fik vi sådan noget 51, så det virker som om der er noget der bliver udeladt her. Betydning? Evt sæt den til => i stedet for >?
 ```
-- Then implement a quadratic approximation (hint check paragraph 2.4.2!).
-- N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
+## - Then implement a quadratic approximation (hint check paragraph 2.4.2!). N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
 ```{r}
+# Using quap first to do quadratic approximation
 globe.qa <- quap(
   alist(
     W~dbinom(C+W,p),#binomial likelihood
     p~dunif(0,1) #uniform prior
   ), data = list(C=3, W=3))
 
-# display summary of quadratic approximation
+# Display summary of quadratic approximation
 precis(globe.qa)
 
-# analytical calculation and plot of quadratic approximation
+# Analytical calculation and plot of quadratic approximation
 W <- 3
 C <- 3
 curve(dbeta(x,W+1,C+1), from = 0, to = 1)
 
-curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE)
+# Quadratic approximation with posterior mean value of 0.5 and curvature of 0.2.
+curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE) 
 
-# getting values from curve thing
-p <- curve(dnorm(x,0.5,0.1), lty = 2, add = TRUE)
+# Getting values
+p <- curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE)
 
-area_above_50 <- sum(p$y[which(p$x == 0.5)]:length(p$y))/sum(p$y)
-
+# BEFORE IT SAID: area_above_50 <- sum(p$y[which(p$x == 0.5)]:length(p$y))/sum(p$y)
+# Calculating the probability of answering above chance
+p_over_0.5 <- sum(p$y[p$x > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
+p_over_0.5 #48, ikke 0.489 NB som ovenover
 ```
-We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is the sd, of 0.16. We read this like: "Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16". 
+We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is the sd, of 0.2. Assuming the posterior is Gaussian, it is maximized at 0.50, and its standard deviation is 0.20. 
 
-2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+# 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+
+### Making a function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
+NB: *pre-specify part can be implemented in function but since it will prob be equal in the next points in the assignments I thought meh for now*
+NB: *doesnt have the check of priors, the rbinom one - prob important, say something about it / use it before the function*
 ```{r}
-# Equal for all: dens <- 101
-p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-prior <- rep(1 , dens)
-dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
-
-# Riccardo: 3 correct answers out of 6 questions
-likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Kristian: 2 correct answers out of 2 questions (then he gets bored)
-likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Tylén's knowledge of CogSci")+ ylab("posterior probability")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-likelihood <- dbinom(160 , size = 198 , prob = p_grid)
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Daina's knowledge of CogSci")+ ylab("posterior probability")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-
-# Mikkel: 66 correct answers out of 132 questions
-likelihood <- dbinom(66 , size = 132 , prob = p_grid)
-unstd.posterior <- likelihood * prior
-posterior <- unstd.posterior / sum(unstd.posterior)
-d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Mikkel's knowledge of CogSci")+ ylab("posterior probability")
-
-# Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-```
-
-2a. Produce plots of the prior, and posterior for each teacher.
-```{r}
-# PlotGrid
-teachers <- cowplot::plot_grid(riccardo,tylen,daina,mikkel)
-teachers
-```
-
-3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
-3a. Produce plots of the prior and posterior for each teacher.
-
-# Function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
-```{r}
-#pre-specify what you want these two values to be before running the function, can be implemented in function but since it will prob be equal in the next points in the assignments I thought meh 
+# Pre-specify what you want these two values to be before using the function on something
 dens = 202
 p_grid <- seq(from = 0 ,
                 to = 1 ,
                 length.out = dens)
 
-# function - returns a df and a plot. NB: dens and p_grid are pre-specified as of now as it says above.
+# Function returning DF and PLOT
 FindMyPosteriors <- function(correct, total, prior, p_grid) {
   likelihood <- dbinom(correct , size = total , prob = p_grid)
   unstd.posterior <- likelihood*prior
@@ -211,12 +123,12 @@ FindMyPosteriors <- function(correct, total, prior, p_grid) {
 
   df = data.frame(p_grid,unstd.posterior,likelihood,posterior,prior,p_over_0.5)
    plot <-
-    ggplot(d, aes(grid, posterior)) + geom_point() + geom_line() + theme_classic() + geom_line(aes(grid, prior /dens), color = 'red') + xlab("Knowledge of CogSci") + ylab("posterior probability") + ggtitle("Plot From function")
+    ggplot(d, aes(grid, posterior)) + geom_point() + geom_line() + theme_classic() + geom_line(aes(grid, prior /dens), color = 'red') + xlab("Knowledge of CogSci") + ylab("posterior probability") + ggtitle("Plot from function, evt gør noget med paste her med navnene og et loop der går igennem lærerne?")
    
   return(list(df,plot))
 }
 
-# access df in object[[1]] and access plot in object[[2]]
+# Two tests to see what you will get: access df in object[[1]] and access plot in object[[2]]
 t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid)
 t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid)
 
@@ -225,14 +137,18 @@ t_uniform[[2]] #plot
 
 t_norm[[1]] #df
 t_norm[[2]] #plot
+
 ```
-## Using function to find teachers smarter knowledge
+
+# 3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
+
+###  Using function to find teachers smarter knowledge
 ```{r}
 # Information equal for all teachers
 dens = 101
 p_grid = seq(from = 0 , to = 1 , length.out = dens)
 prior = dnorm(p_grid, 0.8,0.2)
-dens(rbinom(1e4, 9, runif(1e4,0,1))) # Checking prior, not sure I understand the numbers here
+dens(rbinom(1e4, 9, runif(1e4,0,1))) # Checking prior, not sure I understand the numbers here, the 9 fx? wat are you
 ```
 
 
@@ -256,8 +172,12 @@ SmarterDaina[[2]]+ggtitle("Smarter Daina's knowledge of CogSci") #wow
 SmarterMikkel <- FindMyPosteriors(correct = 66, total = 132, prior = prior, p_grid = p_grid)
 SmarterMikkel[[1]] #p_over_50 = 0.57
 SmarterMikkel[[2]]+ggtitle("Smarter Mikkel's knowledge of CogSci")
+```
 
-# Collecting the plotsin a PlotGrid
+## 3a. Produce plots of the prior and posterior for each teacher.
+Already been done a bit above, but here is a grid: 
+```{r}
+# Collecting the plots in a PlotGrid
 Smarter_teachers <-
   cowplot::plot_grid(
     SmarterRiccardo[[2]] + ggtitle("Smarter Riccardo"),
@@ -269,8 +189,125 @@ Smarter_teachers
 
 ```
 
+# 4 . You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
+```{r}
+# Uniform prior
+dens = 101 # arbitrary number - what do we wanna put? 
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+
+Riccardo_uf <- FindMyPosteriors(correct = 300,total = 600, prior = prior, p_grid = p_grid)
+Riccardo_uf[[1]]
+Riccardo_uf[[2]]+ggtitle("Uniform prior - Riccardo's knowledge of CogSci") 
+
+Tylén_uf <- FindMyPosteriors(correct = 200, total = 200, prior = prior, p_grid = p_grid)
+Tylén_uf[[1]] 
+Tylén_uf[[2]]+ggtitle("Uniform prior - Tylén's knowledge of CogSci")
+
+Daina_uf <- FindMyPosteriors(correct = 16000, total = 19800, prior = prior, p_grid = p_grid)
+Daina_uf[[1]] 
+Daina_uf[[2]]+ggtitle("Uniform prior - Daina's knowledge of CogSci") 
+
+Mikkel_uf <- FindMyPosteriors(correct = 6600, total = 13200, prior = prior, p_grid = p_grid)
+Mikkel_uf[[1]] 
+Mikkel_uf[[2]]+ggtitle("Uniform prior - Mikkel's knowledge of CogSci")
+
+# Collecting the plots in a PlotGrid
+uniform_teachers <-
+  cowplot::plot_grid(
+    Riccardo_uf[[2]] + ggtitle("Uni. prior, big data - Riccardo"),
+    Tylén_uf[[2]] + ggtitle("Uni. prior, big data - Tylén"),
+    Daina_uf[[2]] + ggtitle("Uni. prior, big data - Daina"),
+    Mikkel_uf[[2]] + ggtitle("Uni. prior, big data - Mikkel")
+  )
+uniform_teachers
+
+# Making them with regular data and uniform priors to compare
+dens = 101 
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+
+Riccardo_uf_reg <- FindMyPosteriors(correct = 3,total = 6, prior = prior, p_grid = p_grid)
+Riccardo_uf_reg[[1]]
+Riccardo_uf_reg[[2]]+ggtitle("Uniform prior, reg. data - Riccardo") 
+
+Tylén_uf_reg <- FindMyPosteriors(correct = 2, total = 2, prior = prior, p_grid = p_grid)
+Tylén_uf_reg[[1]] 
+Tylén_uf_reg[[2]]+ggtitle("Uniform prior, reg. data - Tylén")
+
+Daina_uf_reg <- FindMyPosteriors(correct = 160, total = 198, prior = prior, p_grid = p_grid)
+Daina_uf_reg[[1]] 
+Daina_uf_reg[[2]]+ggtitle("Uniform prior,  reg. data - Daina") 
+
+Mikkel_uf_reg <- FindMyPosteriors(correct = 66, total = 132, prior = prior, p_grid = p_grid)
+Mikkel_uf_reg[[1]] 
+Mikkel_uf_reg[[2]]+ggtitle("Uniform prior, reg. data - Mikkel")
+
+uniform_reg_teachers <-
+  cowplot::plot_grid(
+    Riccardo_uf_reg[[2]] + ggtitle("Uni. prior, reg. data - Riccardo"),
+    Tylén_uf_reg[[2]] + ggtitle("Uni. prior, reg. data - Tylén"),
+    Daina_uf_reg[[2]] + ggtitle("Uni. prior, reg. data - Daina"),
+    Mikkel_uf_reg[[2]] + ggtitle("Uni. prior, reg. data - Mikkel")
+  )
+uniform_reg_teachers
+
+# Compare
+cowplot::plot_grid(uniform_teachers,uniform_reg_teachers)
+```
+5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
+
+```{r}
+
+```
+
+6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
+```{r}
+
+```
+
+### Second part: Focusing on predictions
+
+Last year you assessed the teachers (darned time runs quick!). Now you want to re-test them and assess whether your models are producing reliable predictions. In Methods 3 we learned how to do machine-learning style assessment of predictions (e.g. rmse on testing datasets). Bayesian stats makes things a bit more complicated. So we'll try out how that works. N.B. You can choose which prior to use for the analysis of last year's data.
+
+Questions to be answered (but see guidance below):
+1- Write a paragraph discussing how assessment of prediction performance is different in Bayesian vs. frequentist models
+2- Provide at least one plot and one written line discussing prediction errors for each of the teachers.
+
+This is the old data:
+- Riccardo: 3 correct answers out of 6 questions
+- Kristian: 2 correct answers out of 2 questions (then he gets bored)
+- Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+- Mikkel: 66 correct answers out of 132 questions
+
+This is the new data:
+- Riccardo: 9 correct answers out of 10 questions (then he freaks out about teaching preparation and leaves)
+- Kristian: 8 correct answers out of 12 questions
+- Daina: 148 correct answers out of 172 questions (again, Daina never gets bored)
+- Mikkel: 34 correct answers out of 65 questions
+
+Guidance Tips
+
+1. There are at least two ways of assessing predictions.
+2. Last year's results are this year's expectations.
+3. Are the parameter estimates changing? (way 1)
+4. How does the new data look in last year's predictive posterior? (way 2)
+
+
+
+
+
+
+
+
+##### 
 ```{r}
 # # OLD OLD OLD OLD OLD BUT DONT DELETE JUST YET
+# # Equal for all: dens <- 101
+# p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+# prior <- rep(1 , dens)
+# dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
 # # Riccardo: 3 correct answers out of 6 questions
 # likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
 # unstd.posterior <- likelihood * prior
@@ -320,44 +357,3 @@ Smarter_teachers
 # teachers
 # smarter_teachers
 ```
-4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
-```{r}
-
-```
-
-5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
-```{r}
-
-```
-
-6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
-```{r}
-
-```
-
-### Second part: Focusing on predictions
-
-Last year you assessed the teachers (darned time runs quick!). Now you want to re-test them and assess whether your models are producing reliable predictions. In Methods 3 we learned how to do machine-learning style assessment of predictions (e.g. rmse on testing datasets). Bayesian stats makes things a bit more complicated. So we'll try out how that works. N.B. You can choose which prior to use for the analysis of last year's data.
-
-Questions to be answered (but see guidance below):
-1- Write a paragraph discussing how assessment of prediction performance is different in Bayesian vs. frequentist models
-2- Provide at least one plot and one written line discussing prediction errors for each of the teachers.
-
-This is the old data:
-- Riccardo: 3 correct answers out of 6 questions
-- Kristian: 2 correct answers out of 2 questions (then he gets bored)
-- Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-- Mikkel: 66 correct answers out of 132 questions
-
-This is the new data:
-- Riccardo: 9 correct answers out of 10 questions (then he freaks out about teaching preparation and leaves)
-- Kristian: 8 correct answers out of 12 questions
-- Daina: 148 correct answers out of 172 questions (again, Daina never gets bored)
-- Mikkel: 34 correct answers out of 65 questions
-
-Guidance Tips
-
-1. There are at least two ways of assessing predictions.
-2. Last year's results are this year's expectations.
-3. Are the parameter estimates changing? (way 1)
-4. How does the new data look in last year's predictive posterior? (way 2)
