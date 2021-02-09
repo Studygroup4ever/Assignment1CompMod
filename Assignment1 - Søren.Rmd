@@ -61,6 +61,7 @@ unstd.posterior <- likelihood * prior
 # Standardize the posterior (so it sums to 1)
 posterior <- unstd.posterior / sum(unstd.posterior)
 
+
 #Draw the plot
 d <- data.frame(grid = p_grid, 
                 posterior = posterior, 
@@ -75,8 +76,9 @@ d %>% ggplot(aes(grid, posterior)) +
   xlab("Knowledge of CogSci") + 
   ylab("posterior probability")
 
+
 # Calculating the probability of him answering above 50% using the posteriors
-sum( posterior[ p_grid < 0.5 ] )
+sum( posterior[ p_grid > 0.5 ] )
 
 # Calculating the probability of him answering above 50% using samples from the posteriors
 samples <- sample(p_grid, 
@@ -88,7 +90,6 @@ samples %>% plot()
 samples %>% dens()
 
 length(subset(samples, samples>=0.5))/length(samples)
-
 
 sum( samples > 0.5 )/length(samples)
 
@@ -142,6 +143,9 @@ post.dist.plot <- function(correct, wrong) {
   
   posterior <- unstd.posterior / sum(unstd.posterior)
   
+  loss <- sapply( p_grid , function(d) sum( posterior*abs( d - p_grid ) ) )
+  min.lossfunc <- round(p_grid[ which.min(loss) ], digits = 2)
+  
   d <-
     data.frame(
       grid = p_grid,
@@ -152,8 +156,16 @@ post.dist.plot <- function(correct, wrong) {
   
   plot <- d %>% ggplot(
     aes(grid, posterior)) + 
-    geom_point() + geom_line() + theme_classic() + 
-    geom_line(aes(grid, prior / dens), color = 'red') + ylab("posterior probability")
+    geom_point() + 
+    geom_line() + 
+    theme_classic() + 
+    geom_line(aes(grid, prior / dens), color = 'red') + 
+    geom_vline(xintercept = min.lossfunc, colour = 'darkgreen') + 
+    annotate("text", 
+             x = ifelse(min.lossfunc < 0.5, min.lossfunc + 0.2, min.lossfunc - 0.2),
+             y = max(posterior) * 1.1, 
+             label = as.character(paste0("min.loss = ", min.lossfunc, sep = " "), parse = TRUE)) +
+    ylab("posterior probability")
   
   return(plot)
 }
