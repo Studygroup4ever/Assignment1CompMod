@@ -43,7 +43,6 @@ Questions:
 - First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
 
 ```{r}
-## CLEAN ##
 # defining the density, grit and uniform prior
 dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
@@ -176,7 +175,7 @@ post.dist.plot <- function(correct, wrong) {
 
 ```{r}
 # Equal for all: 
-dens <- 101
+dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
 #dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
@@ -217,7 +216,7 @@ wallentin <- post.dist.plot(66, 66) +
 
 ```{r}
 #Equal for all: 
-dens <- 101
+dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- dnorm(p_grid, 0.8, 0.2)
 dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
@@ -298,11 +297,9 @@ moredata_wallentin <- post.dist.plot(6600, 6600) +
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
 
-```{r}
-
-```
-
-
+There are multiple ways to operationalize the belief that our teachers know nothing about CogSci depending upon how likely this belief is.
+One way could be assigning a linear ascending prior. Here, the steeper we make the slope the more certain we are of our teachers knowing nothing about CogSci. We could even have the prior intercept with the x-axis and assign the value 0 to everything above the intercept, if we are certain that the true knowledge of our teachers is not above this intercept.
+Other ways of operationalizing this belief could be to choose other functions to generate the prior. E.g. a logistic function or a exponential function - again, we would choose the function to generate our prior depending upon how certain we are of different our teachers true knowledge of CogSci.
 
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
 
