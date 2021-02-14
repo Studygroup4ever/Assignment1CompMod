@@ -43,7 +43,6 @@ Questions:
 - First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
 
 ```{r}
-## CLEAN ##
 # defining the density, grit and uniform prior
 dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
@@ -61,6 +60,7 @@ unstd.posterior <- likelihood * prior
 # Standardize the posterior (so it sums to 1)
 posterior <- unstd.posterior / sum(unstd.posterior)
 
+
 #Draw the plot
 d <- data.frame(grid = p_grid, 
                 posterior = posterior, 
@@ -75,8 +75,9 @@ d %>% ggplot(aes(grid, posterior)) +
   xlab("Knowledge of CogSci") + 
   ylab("posterior probability")
 
+
 # Calculating the probability of him answering above 50% using the posteriors
-sum( posterior[ p_grid < 0.5 ] )
+sum( posterior[ p_grid > 0.5 ] )
 
 # Calculating the probability of him answering above 50% using samples from the posteriors
 samples <- sample(p_grid, 
@@ -88,7 +89,6 @@ samples %>% plot()
 samples %>% dens()
 
 length(subset(samples, samples>=0.5))/length(samples)
-
 
 sum( samples > 0.5 )/length(samples)
 
@@ -142,6 +142,9 @@ post.dist.plot <- function(correct, wrong) {
   
   posterior <- unstd.posterior / sum(unstd.posterior)
   
+  loss <- sapply( p_grid , function(d) sum( posterior*abs( d - p_grid ) ) )
+  min.lossfunc <- round(p_grid[ which.min(loss) ], digits = 2)
+  
   d <-
     data.frame(
       grid = p_grid,
@@ -152,8 +155,16 @@ post.dist.plot <- function(correct, wrong) {
   
   plot <- d %>% ggplot(
     aes(grid, posterior)) + 
-    geom_point() + geom_line() + theme_classic() + 
-    geom_line(aes(grid, prior / dens), color = 'red') + ylab("posterior probability")
+    geom_point() + 
+    geom_line() + 
+    theme_classic() + 
+    geom_line(aes(grid, prior / dens), color = 'red') + 
+    geom_vline(xintercept = min.lossfunc, colour = 'darkgreen') + 
+    annotate("text", 
+             x = ifelse(min.lossfunc < 0.5, min.lossfunc + 0.2, min.lossfunc - 0.2),
+             y = max(posterior) * 1.1, 
+             label = as.character(paste0("min.loss = ", min.lossfunc, sep = " "), parse = TRUE)) +
+    ylab("posterior probability")
   
   return(plot)
 }
@@ -164,7 +175,7 @@ post.dist.plot <- function(correct, wrong) {
 
 ```{r}
 # Equal for all: 
-dens <- 101
+dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
 #dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
@@ -205,7 +216,7 @@ wallentin <- post.dist.plot(66, 66) +
 
 ```{r}
 #Equal for all: 
-dens <- 101
+dens <- 1000
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- dnorm(p_grid, 0.8, 0.2)
 dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
@@ -286,11 +297,9 @@ moredata_wallentin <- post.dist.plot(6600, 6600) +
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
 
-```{r}
-
-```
-
-
+There are multiple ways to operationalize the belief that our teachers know nothing about CogSci depending upon how likely this belief is.
+One way could be assigning a linear ascending prior. Here, the steeper we make the slope the more certain we are of our teachers knowing nothing about CogSci. We could even have the prior intercept with the x-axis and assign the value 0 to everything above the intercept, if we are certain that the true knowledge of our teachers is not above this intercept.
+Other ways of operationalizing this belief could be to choose other functions to generate the prior. E.g. a logistic function or a exponential function - again, we would choose the function to generate our prior depending upon how certain we are of different our teachers true knowledge of CogSci.
 
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
 
