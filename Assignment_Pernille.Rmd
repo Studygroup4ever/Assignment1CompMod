@@ -257,7 +257,7 @@ uniform_reg_teachers
 cowplot::plot_grid(uniform_teachers,uniform_reg_teachers)
 ```
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
-
+*THOUGHTS:*
 Setting a prior equal to 0? If our prior is that 0% knowledge is probable. We will give our "golem" the information state of 0 before the data. An initial confidence in each possible value of p at 0. 
 
 Can be done like: 
