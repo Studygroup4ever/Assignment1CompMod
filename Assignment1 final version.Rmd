@@ -9,22 +9,429 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r}
+library(pacman)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+p_load(rethinking, tidyverse, ggplot2, cowplot)
 ```
 
-## Including Plots
+## In this assignment we learn how to assess rates from a binomial distribution, using the case of assessing your teachers' knowledge of CogSci
 
-You can also embed plots, for example:
+N.B. this markdown has 2 parts as it spans 2 weeks of teaching
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### First part
+
+You want to assess your teachers' knowledge of cognitive science. "These guys are a bunch of drama(turgist) queens, mindless philosophers, chattering communication people and Russian spies. Do they really know CogSci?", you think.
+
+To keep things simple (your teachers should not be faced with too complicated things):
+- You created a pool of equally challenging questions on CogSci
+- Each question can be answered correctly or not (we don't allow partially correct answers, to make our life simpler).
+- Knowledge of CogSci can be measured on a scale from 0 (negative knowledge, all answers wrong) through 0.5 (random chance) to 1 (awesome CogSci superpowers)
+
+This is the data:
+- Riccardo: 3 correct answers out of 6 questions
+- Kristian: 2 correct answers out of 2 questions (then he gets bored)
+- Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+- Mikkel: 66 correct answers out of 132 questions
+
+Questions:
+
+1. What's Riccardo's estimated knowledge of CogSci? What is the probability he knows more than chance (0.5) [try figuring this out. if you can't peek into chapters 3.1 and 3.2 and/or the slides]?
+- First implement a grid approximation (hint check paragraph 2.4.1!) with a uniform prior, calculate the posterior and plot the results
+- Then implement a quadratic approximation (hint check paragraph 2.4.2!).
+- N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
+
+```{r}
+# Grid approximation of Riccardo's expected knowledge of CogSci
+
+# defining the density, grit and uniform prior
+dens <- 1000
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- rep(1 , dens)
+
+# test prior
+dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
+
+samples.prior <- sample(prior, 
+                  prob=prior, 
+                  size=1e2, 
+                  replace=TRUE) 
+
+samples.prior %>% plot()
+samples.prior %>% dens()
+
+
+#Computing the likelihood at each value in grid
+likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
+
+# Compute the posterior (likelihood by prior)
+unstd.posterior <- likelihood * prior
+
+# Standardize the posterior (so it sums to 1)
+posterior <- unstd.posterior / sum(unstd.posterior)
+
+
+#Draw the plot
+d <- data.frame(grid = p_grid, 
+                posterior = posterior, 
+                prior = prior, 
+                likelihood = likelihood)
+
+d %>% ggplot(aes(grid, posterior)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_classic() + 
+  geom_line(aes(grid, prior / dens), color = 'red') + 
+  xlab("Knowledge of CogSci") + 
+  ylab("posterior probability") + 
+  ggtitle("Riccardo's Expected Knowledge of CogSci after 6 Questions")
+
+
+# Calculating the probability of him answering above 50% using the posteriors
+sum( posterior[ p_grid > 0.5 ] )
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+# Quardratic approximation of Riccardo's expected knowledge of CogSci
+
+riccardo.qa <- quap(alist(W ~ dbinom(C + W, p), # binomial likelihood
+                       p ~ dunif(0, 1)), # uniform prior
+                 data = list(C = 3, W = 3))
+
+# display summary of quadratic approximation
+precis(riccardo.qa)
+
+# getting values from the curve function
+p <- curve(dnorm(x, 0.5, 0.2), 
+           lty = 2, 
+           add = F)
+
+# Estimating the chance that Riccardo knows 50% or more about CogSci
+sum(p$y[which(p$x == 0.5)]:length(p$y)) / sum(p$y)
+
+# Creating values from the quadratic approximation
+quad <-
+  dnorm(seq(
+    from = 0,
+    to = 1,
+    length.out = 1e3), 0.5, 0.2) / 
+  sum(dnorm(seq(
+    from = 0,
+    to = 1,
+    length.out = 1e3), 0.5, 0.2))
+
+# preparing df's for ggplot
+d1 <- data.frame(grid = p_grid, 
+                posterior = posterior, 
+                prior = prior, 
+                type = "grid")
+
+d2 <- data.frame(grid = p_grid, 
+                posterior = quad, 
+                prior = prior, 
+                type = "quad")
+
+# Plotting the difference between the grid and the quad. approx.
+rbind(d1, d2) %>% ggplot(aes(grid, posterior, color = type)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_classic() + 
+  geom_line(aes(grid, prior / dens), color = 'red') + 
+  xlab("Knowledge of CogSci") + 
+  ylab("posterior probability") +
+  ggtitle("Difference Between Grid and Quadratic Approximation")
+
+
+```
+
+
+2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
+2a. Produce plots of the prior, and posterior for each teacher.
+
+```{r}
+# We are going to make a lot of plots, so we'll collect the code for plots in a function
+post.dist.plot <- function(correct, wrong) {
+  likelihood <-
+    dbinom(correct , size = correct + wrong , prob = p_grid)
+  
+  unstd.posterior <- likelihood * prior
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  loss <- sapply( p_grid , function(d) sum( posterior*abs( d - p_grid ) ) )
+  min.lossfunc <- round(p_grid[ which.min(loss) ], digits = 2)
+  
+  d <-
+    data.frame(
+      grid = p_grid,
+      posterior = posterior,
+      prior = prior,
+      likelihood = likelihood
+    )
+  
+  plot <- d %>% ggplot(
+    aes(grid, posterior)) + 
+    geom_point() + 
+    geom_line() + 
+    theme_classic() + 
+    geom_line(aes(grid, prior / dens), color = 'red') + 
+    geom_vline(xintercept = min.lossfunc, colour = 'darkgreen') + 
+    annotate("text", 
+             x = ifelse(min.lossfunc < 0.5, min.lossfunc + 0.2, min.lossfunc - 0.2),
+             y = max(posterior) * 1.1, 
+             label = as.character(paste0("min.loss = ", min.lossfunc, sep = " "), parse = TRUE)) +
+    ylab("posterior probability")
+  
+  return(plot)
+}
+
+# Function calculating the HPDI
+hpdi <- function(correct, wrong) {
+  likelihood <-
+    dbinom(correct , size = correct + wrong , prob = p_grid)
+  
+  unstd.posterior <- likelihood * prior
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  samples <- sample(p_grid,
+                    prob = posterior,
+                    size = 1e5,
+                    replace = TRUE)
+  
+  hpdi <- samples %>% HPDI(prob = .50)
+  return(hpdi)
+}
+
+```
+
+```{r}
+# Equal for all: 
+dens <- 1000
+p_grid <- seq(from = 0 ,
+              to = 1 ,
+              length.out = dens)
+prior <- rep(1 , dens)
+
+# Riccardo: 3 correct answers out of 6 questions
+riccardo <- post.dist.plot(3, 3) +
+  xlab("Riccardo's knowledge of CogSci") +
+  ggtitle("AMAZING 4-PLOTS")
+
+hpdi(3, 3)
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+tylen <- post.dist.plot(2, 0) +
+  xlab("Tylen's knowledge of CogSci")
+
+hpdi(2, 0)
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+daina <- post.dist.plot(160, 38) +
+  xlab("Daina's knowledge of CogSci")
+
+hpdi(160, 38)
+
+# Mikkel: 66 correct answers out of 132 questions
+wallentin <- post.dist.plot(66, 66) +
+  xlab("Wallentin's knowledge of CogSci")
+
+hpdi(66, 66)
+
+```
+
+```{r}
+# collecting the teacher's plots in PlotGrid
+(
+  teachers <- 
+  cowplot::plot_grid(riccardo, 
+                     tylen, 
+                     daina, 
+                     wallentin)
+ )
+```
+
+3. Change the prior. Given your teachers have all CogSci jobs, you should start with a higher appreciation of their knowledge: the prior is a normal distribution with a mean of 0.8 and a standard deviation of 0.2. Do the results change (and if so how)?
+3a. Produce plots of the prior and posterior for each teacher.
+
+```{r}
+#Equal for all: 
+dens <- 1000
+p_grid <- seq(from = 0 ,
+              to = 1 ,
+              length.out = dens)
+prior <- dnorm(p_grid, 0.8, 0.2)
+dens(rbinom(1e4, 9, runif(1e4, 0, 1)))
+
+# Riccardo: 3 correct answers out of 6 questions
+smarter_riccardo <- post.dist.plot(3, 3) +
+  xlab("Riccardo's knowledge of CogSci") +
+  ggtitle("AMAZING 4-PLOTS")
+
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+smarter_tylen <- post.dist.plot(2, 0) +
+  xlab("Tylen's knowledge of CogSci")
+
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+smarter_daina <- post.dist.plot(160, 38) +
+  xlab("Daina's knowledge of CogSci")
+
+# Mikkel: 66 correct answers out of 132 questions
+smarter_wallentin <- post.dist.plot(66, 66) +
+  xlab("Wallentin's knowledge of CogSci")
+
+# PlotGrid
+(
+  smarter_teachers <-
+    cowplot::plot_grid(
+      smarter_riccardo,
+      smarter_tylen,
+      smarter_daina,
+      smarter_wallentin
+    )
+)
+```
+
+```{r}
+# Comparing prior_dumb and prior_smart
+teachers
+smarter_teachers
+```
+
+4. You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
+```{r}
+#Equal for all: 
+dens <- 1000
+p_grid <- seq(from = 0 ,
+              to = 1 ,
+              length.out = dens)
+prior <- dnorm(p_grid, 0.8, 0.2)
+
+# Riccardo: 300 correct answers out of 600 questions
+moredata_riccardo <- post.dist.plot(300, 300) +
+  xlab("Riccardo's knowledge of CogSci") +
+  ggtitle("AMAZING 4-PLOTS")
+
+
+# Tylen: 2 correct answers out of 2 questions (then he gets bored)
+moredata_tylen <- post.dist.plot(200, 0) +
+  xlab("Tylen's knowledge of CogSci")
+
+
+# Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+moredata_daina <- post.dist.plot(16000, 3800) +
+  xlab("Daina's knowledge of CogSci")
+
+# Mikkel: 66 correct answers out of 132 questions
+moredata_wallentin <- post.dist.plot(6600, 6600) +
+  xlab("Wallentin's knowledge of CogSci")
+
+# PlotGrid
+(
+  smarter_teachers <-
+    cowplot::plot_grid(
+      moredata_riccardo,
+      moredata_tylen,
+      moredata_daina,
+      moredata_wallentin
+    )
+)
+
+```
+
+5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
+
+6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
+
+### Second part: Focusing on predictions
+
+Last year you assessed the teachers (darned time runs quick!). Now you want to re-test them and assess whether your models are producing reliable predictions. In Methods 3 we learned how to do machine-learning style assessment of predictions (e.g. rmse on testing datasets). Bayesian stats makes things a bit more complicated. So we'll try out how that works. N.B. You can choose which prior to use for the analysis of last year's data.
+
+Questions to be answered (but see guidance below):
+1- Write a paragraph discussing how assessment of prediction performance is different in Bayesian vs. frequentist models
+2- Provide at least one plot and one written line discussing prediction errors for each of the teachers.
+
+This is the old data:
+- Riccardo: 3 correct answers out of 6 questions
+- Kristian: 2 correct answers out of 2 questions (then he gets bored)
+- Daina: 160 correct answers out of 198 questions (Daina never gets bored)
+- Mikkel: 66 correct answers out of 132 questions
+
+This is the new data:
+- Riccardo: 9 correct answers out of 10 questions (then he freaks out about teaching preparation and leaves)
+- Kristian: 8 correct answers out of 12 questions
+- Daina: 148 correct answers out of 172 questions (again, Daina never gets bored)
+- Mikkel: 34 correct answers out of 65 questions
+
+Guidance Tips
+
+1. There are at least two ways of assessing predictions.
+2. Last year's results are this year's expectations.
+3. Are the parameter estimates changing? (way 1)
+4. How does the new data look in last year's predictive posterior? (way 2)
+
+```{r}
+ppd.assessment <- function(list.old.data, list.new.data) { 
+  # Defining p_grid
+  p_grid <- seq(from = 0,
+                to = 1,
+                length.out = 1e3)
+  
+  # Defining uniform prior
+  prior <- rep(1, length(p_grid))
+  
+  # 
+  likelihood <- dbinom(list.old.data[1], size = list.old.data[2], prob = p_grid)
+  
+  unstd.posterior <- prior * likelihood
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  posterior %>% plot()
+  
+  samples <- p_grid %>% sample(prob = posterior,
+                               size = 1e4,
+                               replace = T)
+  
+  ppd = rbinom(1e4, size = list.new.data[2], prob = samples)
+  
+  simplehist(ppd)
+  abline(v = list.new.data[1], col = "red")
+  
+  (c(sum(ppd == list.new.data[1]) / length(ppd), 
+     sum(ppd >= list.new.data[1]) / length(ppd), 
+     sum(ppd < list.new.data[1]) / length(ppd)))
+  
+}
+
+```
+
+
+```{r}
+# Riccardo
+old.data <- c(3, 6)
+new.data <- c(9, 10)
+
+ppd.assessment(old.data, new.data)
+
+# Kristian
+old.data <- c(2, 2)
+new.data <- c(8, 12)
+
+ppd.assessment(old.data, new.data)
+
+# Daina
+old.data <- c(160, 198)
+new.data <- c(148, 172)
+
+ppd.assessment(old.data, new.data)
+
+# Mikkel
+old.data <- c(66, 132)
+new.data <- c(34, 65)
+
+ppd.assessment(old.data, new.data)
+
+```
