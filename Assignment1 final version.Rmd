@@ -60,7 +60,6 @@ samples.prior <- sample(prior,
 samples.prior %>% plot()
 samples.prior %>% dens()
 
-
 #Computing the likelihood at each value in grid
 likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
 
@@ -70,22 +69,23 @@ unstd.posterior <- likelihood * prior
 # Standardize the posterior (so it sums to 1)
 posterior <- unstd.posterior / sum(unstd.posterior)
 
-
-#Draw the plot
+# Drawing the plot
 d <- data.frame(grid = p_grid, 
                 posterior = posterior, 
                 prior = prior, 
                 likelihood = likelihood)
 
-d %>% ggplot(aes(grid, posterior)) + 
-  geom_point() + 
-  geom_line() + 
-  theme_classic() + 
-  geom_line(aes(grid, prior / dens), color = 'red') + 
-  xlab("Knowledge of CogSci") + 
-  ylab("posterior probability") + 
+d %>% ggplot(aes(grid, posterior)) +
+  geom_point() +
+  geom_ribbon(data = d %>% filter(p_grid > .5),
+              aes(ymin = 0, ymax = posterior),
+              fill = "darkblue", alpha = .5) +
+  geom_line() +
+  theme_classic() +
+  geom_line(aes(grid, prior / dens), color = 'red') +
+  xlab("Knowledge of CogSci") +
+  ylab("posterior probability") +
   ggtitle("Riccardo's Expected Knowledge of CogSci after 6 Questions")
-
 
 # Calculating the probability of him answering above 50% using the posteriors
 sum( posterior[ p_grid > 0.5 ] )
@@ -93,7 +93,7 @@ sum( posterior[ p_grid > 0.5 ] )
 ```
 
 ```{r}
-# Quardratic approximation of Riccardo's expected knowledge of CogSci
+# Quadratic approximation of Riccardo's expected knowledge of CogSci
 
 riccardo.qa <- quap(alist(W ~ dbinom(C + W, p), # binomial likelihood
                        p ~ dunif(0, 1)), # uniform prior
@@ -142,9 +142,7 @@ rbind(d1, d2) %>% ggplot(aes(grid, posterior, color = type)) +
   ylab("posterior probability") +
   ggtitle("Difference Between Grid and Quadratic Approximation")
 
-
 ```
-
 
 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
 2a. Produce plots of the prior, and posterior for each teacher.
@@ -216,7 +214,7 @@ prior <- rep(1 , dens)
 # Riccardo: 3 correct answers out of 6 questions
 riccardo <- post.dist.plot(3, 3) +
   xlab("Riccardo's knowledge of CogSci") +
-  ggtitle("AMAZING 4-PLOTS")
+  ggtitle("Teacher plots")
 
 hpdi(3, 3)
 
@@ -266,7 +264,7 @@ dens(rbinom(1e4, 9, runif(1e4, 0, 1)))
 # Riccardo: 3 correct answers out of 6 questions
 smarter_riccardo <- post.dist.plot(3, 3) +
   xlab("Riccardo's knowledge of CogSci") +
-  ggtitle("AMAZING 4-PLOTS")
+  ggtitle("Smarter teacher plots")
 
 
 # Tylen: 2 correct answers out of 2 questions (then he gets bored)
@@ -312,7 +310,7 @@ prior <- dnorm(p_grid, 0.8, 0.2)
 # Riccardo: 300 correct answers out of 600 questions
 moredata_riccardo <- post.dist.plot(300, 300) +
   xlab("Riccardo's knowledge of CogSci") +
-  ggtitle("AMAZING 4-PLOTS")
+  ggtitle("Smater Teachers and More Data Plots")
 
 
 # Tylen: 2 correct answers out of 2 questions (then he gets bored)
@@ -382,24 +380,31 @@ ppd.assessment <- function(list.old.data, list.new.data) {
   # Defining uniform prior
   prior <- rep(1, length(p_grid))
   
-  # 
+  # Calculating the likelihood
   likelihood <- dbinom(list.old.data[1], size = list.old.data[2], prob = p_grid)
   
+  # Finding the unstandardised posterior
   unstd.posterior <- prior * likelihood
   
+  # Standardising the posterior
   posterior <- unstd.posterior / sum(unstd.posterior)
   
+  # Plotting the posterior
   posterior %>% plot()
   
+  # Sampling the posterior
   samples <- p_grid %>% sample(prob = posterior,
                                size = 1e4,
                                replace = T)
   
+  # Creating the posterior predictive distribution
   ppd = rbinom(1e4, size = list.new.data[2], prob = samples)
   
+  # Plotting the PPD
   simplehist(ppd)
   abline(v = list.new.data[1], col = "red")
   
+  # Extracting the chance of seeing the specific value + the value or above + lower than the value given the posterior from the old data
   (c(sum(ppd == list.new.data[1]) / length(ppd), 
      sum(ppd >= list.new.data[1]) / length(ppd), 
      sum(ppd < list.new.data[1]) / length(ppd)))
