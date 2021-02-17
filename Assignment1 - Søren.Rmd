@@ -83,10 +83,51 @@ sum( posterior[ p_grid > 0.5 ] )
 samples <- sample(p_grid, 
                   prob=posterior, 
                   size=1e5, 
-                  replace=TRUE)
+                  replace=TRUE) 
 
 samples %>% plot()
 samples %>% dens()
+
+samples.df <- samples %>% data_frame()
+
+samples.df %>%
+  ggplot(aes(x = .)) +
+    geom_histogram(
+    aes(y = ..density..),
+    color = "darkred",
+    fill = "red",
+    alpha = .5,
+    binwidth = .01
+  ) +
+  geom_vline(
+    data = samples.df,
+    aes(xintercept = mean(.) + 2.56 * sd(.)),
+    colour = "black",
+    linetype = "dotted"
+  ) +
+  geom_vline(
+    data = samples.df,
+    aes(xintercept = mean(.) - 2.56 * sd(.)),
+    colour = "black",
+    linetype = "dotted"
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(
+      mean = mean(samples.df$., na.rm = TRUE),
+      sd = sd(samples.df$., na.rm = TRUE)
+    ),
+    colour = "black",
+    geom = 'area',
+    alpha = .5,
+    size = 1
+  ) +
+  labs(title = "Density Plot of Samples with Normal Line",
+       y = "Density",
+       x = "Samples") +
+  theme_minimal()
+
+
 
 length(subset(samples, samples>=0.5))/length(samples)
 
@@ -118,6 +159,39 @@ curve(dbeta(x, W + 1, C + 1),
 curve(dnorm(x, 0.5, 0.2), 
       lty = 2, 
       add = TRUE)
+
+
+
+
+
+d1 <- data.frame(grid = p_grid, 
+                posterior = posterior, 
+                prior = prior, 
+                likelihood = likelihood,
+                type = "grid")
+
+quad <- dnorm(seq(from = 0, to = 1, length.out = 1e3), 0.5, 0.2)/sum(dnorm(seq(from = 0, to = 1, length.out = 1e3), 0.5, 0.2))
+
+
+d2 <- data.frame(grid = p_grid, 
+                posterior = quad, 
+                prior = prior, 
+                likelihood = likelihood,
+                type = "quad")
+
+d <- rbind(d1, d2)
+
+d %>% ggplot(aes(grid, posterior, color = type)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_classic() + 
+  geom_line(aes(grid, prior / dens), color = 'red') + 
+  xlab("Knowledge of CogSci") + 
+  ylab("posterior probability") +
+  ggtitle("Difference Between Grid and Quadratic Approximation")
+
+
+
 
 # getting values from curve thing
 p <- curve(dnorm(x, 0.5, 0.2), 
@@ -166,8 +240,28 @@ post.dist.plot <- function(correct, wrong) {
              label = as.character(paste0("min.loss = ", min.lossfunc, sep = " "), parse = TRUE)) +
     ylab("posterior probability")
   
+  
+  
   return(plot)
 }
+
+hpdi <- function(correct, wrong) {
+  likelihood <-
+    dbinom(correct , size = correct + wrong , prob = p_grid)
+  
+  unstd.posterior <- likelihood * prior
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  samples <- sample(p_grid,
+                    prob = posterior,
+                    size = 1e5,
+                    replace = TRUE)
+  hpdi <- samples %>% HPDI(prob = .50)
+  return(hpdi)
+}
+
+
+
 
 ```
 
@@ -181,21 +275,30 @@ prior <- rep(1 , dens)
 #dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
 
 # Riccardo: 3 correct answers out of 6 questions
+
 riccardo <- post.dist.plot(3, 3) + 
   xlab("Riccardo's knowledge of CogSci") + 
   ggtitle("AMAZING 4-PLOTS")
+
+hpdi(3, 3)
 
 # Tylen: 2 correct answers out of 2 questions (then he gets bored)
 tylen <- post.dist.plot(2, 0) + 
   xlab("Tylen's knowledge of CogSci")
 
+hpdi(2, 0)
+
 # Daina: 160 correct answers out of 198 questions (Daina never gets bored)
 daina <- post.dist.plot(160, 38) + 
   xlab("Daina's knowledge of CogSci")
 
+hpdi(160, 38)
+
 # Mikkel: 66 correct answers out of 132 questions
 wallentin <- post.dist.plot(66, 66) + 
   xlab("Wallentin's knowledge of CogSci")
+
+hpdi(66, 66)
 
 ```
 
@@ -329,3 +432,78 @@ Guidance Tips
 2. Last year's results are this year's expectations.
 3. Are the parameter estimates changing? (way 1)
 4. How does the new data look in last year's predictive posterior? (way 2)
+
+```{r}
+ppd.assessment <- function(list.old.data, list.new.data) { 
+  p_grid <- seq(from = 0,
+                to = 1,
+                length.out = 1e3)
+  
+  prior <- rep(1, length(p_grid))
+  
+  likelihood <- dbinom(list.old.data[1], size = list.old.data[2], prob = p_grid)
+  
+  unstd.posterior <- prior * likelihood
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  posterior %>% plot()
+  
+  samples <- p_grid %>% sample(prob = posterior,
+                               size = 1e4,
+                               replace = T)
+  
+  ppd = rbinom(1e4, size = list.new.data[2], prob = samples)
+  
+  simplehist(ppd)
+  abline(v = list.new.data[1], col = "red")
+  
+  (c(sum(ppd == list.new.data[1]) / length(ppd), 
+     sum(ppd >= list.new.data[1]) / length(ppd), 
+     sum(ppd < list.new.data[1]) / length(ppd)))
+  
+}
+set.seed(100)
+
+```
+
+
+
+```{r}
+# Riccardo
+old.data <- c(3,6)
+new.data <- c(9,10)
+
+ppd.assessment(old.data, new.data)
+
+```
+
+```{r}
+# Kristian
+old.data <- c(2,2)
+new.data <- c(8,12)
+
+ppd.assessment(old.data, new.data)
+
+```
+
+```{r}
+# Daina
+old.data <- c(160,198)
+new.data <- c(148,172)
+
+ppd.assessment(old.data, new.data)
+
+```
+
+```{r}
+# Mikkel
+old.data <- c(66,132)
+new.data <- c(34,65)
+
+ppd.assessment(old.data, new.data)
+```
+
+
+
+
