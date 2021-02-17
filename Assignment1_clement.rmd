@@ -142,6 +142,7 @@ posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
 d2_ric <- data.frame(grid = p_grid2, posterior_ric = posterior_ric, prior2 = prior2, likelihood_ric = likelihood_ric)
 
 ric <- ggplot(d2_ric, aes(grid,posterior_ric)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior2/dens2),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+ric
 
 #Draw the plot
 d2_tylen <- data.frame(grid = p_grid2, posterior_tylen = posterior_tylen, prior2 = prior2, likelihood_tylen = likelihood_tylen)
@@ -317,7 +318,42 @@ cowplot::plot_grid(ric,tylen,daina,mikkel)
 
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
 
+##PERNILLE'S GOOD ANSWER##
+*THOUGHTS:* + *i havent done any posterior predictive checks*
+Setting a prior equal to 0? If our prior is that 0% knowledge is probable. We will give our "golem" the information state of 0 before the data. An initial confidence in each possible value of p at 0. 
+
+Can be done like: 
+
+OR maybe just not setting any prior
+
+Setting a prior means that we give the "golem" an information state before the data. We will say that values of 0 are more plausible than 1's. We could do this by saying we want more values below 50 e.g.? Yes? 
+
+We want a prior that says there is higher probability of teacher knowing 0% than 100%. Before, where we set a prior to numbers between 0-1 we said that the probability of the knowledge of CogSci was equal for all values of p. In other words, we did not know anything about their knowledge prior to the data collection. 
+
+prior = dnorm(p_grid, 0.8,0.2) was used to set their knowledge at some point...
+
+We could assign zero probability to all values over 0.5.
+```{r}
+# Uniform prior of 0 knowledge below 50%. 
+dens = 202
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- ifelse(p_grid > 0.5, 0, 1)
+
+YouKnowNothingRiccardoSnow <- FindMyPosteriors(correct = 3,total = 6, prior = prior, p_grid = p_grid)
+YouKnowNothingRiccardoSnow[[1]]
+YouKnowNothingRiccardoSnow[[2]]+ggtitle("Uniform prior of 0 - Teacher background check") 
+
+YouKnowNothingRiccardoSnow <- FindMyPosteriors(correct = 300,total = 600, prior = prior, p_grid = p_grid)
+YouKnowNothingRiccardoSnow[[1]]
+YouKnowNothingRiccardoSnow[[2]]+ggtitle("Uniform prior of 0 - Teacher background check - more data") 
+
+# Trying something else 
+```
+
+
+
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
+
 
 ### Second part: Focusing on predictions
 
@@ -333,11 +369,115 @@ This is the old data:
 - Daina: 160 correct answers out of 198 questions (Daina never gets bored)
 - Mikkel: 66 correct answers out of 132 questions
 
+```{r}
+#Posteriors for the old data
+posterior_ric <- unstd.posterior_ric / sum(unstd.posterior_ric)
+posterior_tylen <- unstd.posterior_tylen / sum(unstd.posterior_tylen)
+posterior_daina <- unstd.posterior_daina / sum(unstd.posterior_daina)
+posterior_mikkel <- unstd.posterior_mikkel / sum(unstd.posterior_mikkel)
+```
+
+
 This is the new data:
 - Riccardo: 9 correct answers out of 10 questions (then he freaks out about teaching preparation and leaves)
 - Kristian: 8 correct answers out of 12 questions
 - Daina: 148 correct answers out of 172 questions (again, Daina never gets bored)
 - Mikkel: 34 correct answers out of 65 questions
+
+```{r}
+dens2 <- 10001
+#The old posteriors are the old posteriors
+p_grid_new <- seq(from = 0 , to = 1 , length.out = dens)
+prior_ric <- posterior_ric
+prior_tylen <- posterior_tylen
+prior_daina <- posterior_daina
+prior_mikkel <- posterior_mikkel
+plot(prior_ric)
+
+#New likelihoods
+likelihood_ric_new <- dbinom( 9 , size = 10 , prob = p_grid )
+likelihood_tylen_new <- dbinom( 8 , size = 12 , prob = p_grid )
+likelihood_daina_new <- dbinom( 148 , size = 172 , prob = p_grid )
+likelihood_mikkel_new <- dbinom( 34 , size = 65 , prob = p_grid )
+
+#Calculating the new unstandardized posteriors
+unstd.posterior_ric_new <- likelihood_ric_new * prior_ric
+unstd.posterior_tylen_new <- likelihood_tylen_new * prior_tylen
+unstd.posterior_daina_new <- likelihood_daina_new * prior_daina
+unstd.posterior_mikkel_new <- likelihood_mikkel_new * prior_mikkel
+
+#Standardize the posterior (so it sums to 1)
+posterior_ric_new <- unstd.posterior_ric_new / sum(unstd.posterior_ric_new)
+posterior_tylen_new <- unstd.posterior_tylen_new / sum(unstd.posterior_tylen_new)
+posterior_daina_new <- unstd.posterior_daina_new / sum(unstd.posterior_daina_new)
+posterior_mikkel_new <- unstd.posterior_mikkel_new / sum(unstd.posterior_mikkel_new)
+
+
+###PLOTS####
+
+#Draw the plot
+d2_ric_new <- data.frame(grid = p_grid_new, posterior_ric_new = posterior_ric_new, prior_ric = prior_ric, likelihood_ric_new = likelihood_ric_new)
+
+ric <- ggplot(d2_ric_new, aes(grid,posterior_ric_new)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior_ric),color= 'red')+  xlab("Riccardo Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_tylen_new <- data.frame(grid = p_grid_new, posterior_tylen_new = posterior_tylen_new, prior_tylen = prior_tylen, likelihood_tylen_new = likelihood_tylen_new)
+
+tylen <- ggplot(d2_tylen_new, aes(grid,posterior_tylen_new)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior_tylen),color= 'red')+  xlab("Tylen Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_daina_new <- data.frame(grid = p_grid_new, posterior_daina_new = posterior_daina_new, prior_daina = prior_daina, likelihood_daina_new = likelihood_daina_new)
+
+daina <- ggplot(d2_daina_new, aes(grid,posterior_daina_new)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior_daina),color= 'red')+  xlab("Daina Knowledge of CogSci") + ylab("posterior probability")
+
+#Draw the plot
+d2_mikkel_new <- data.frame(grid = p_grid_new, posterior_mikkel_new = posterior_mikkel_new, prior_mikkel = prior_mikkel, likelihood_mikkel_new = likelihood_mikkel_new)
+
+mikkel <- ggplot(d2_mikkel_new, aes(grid,posterior_mikkel_new)) +  geom_point() +geom_line()+theme_classic()+  geom_line(aes(grid, prior_mikkel),color= 'red')+  xlab("Mikkel Knowledge of CogSci") + ylab("posterior probability")
+
+# PlotGrid
+cowplot::plot_grid(ric,tylen,daina,mikkel)
+```
+
+
+```{r}
+
+#Predicting new data BAYESIAN STYLE##
+
+#Riccardo
+p_grid <- seq(from = 0, to = 1, length.out = 1e3)
+
+prior <- rep(1, length(p_grid))
+
+likelihood <- dbinom(30, size = 60, prob = p_grid)
+
+unstd.posterior <- prior * likelihood
+
+posterior <- unstd.posterior/sum(unstd.posterior)
+
+posterior %>% plot()
+
+
+
+
+
+
+
+
+samples <- p_grid %>% sample(prob = posterior, 
+                             size = 1e4, 
+                             replace = T)
+
+
+ppd = rbinom(1e4, size = 100, prob = samples)
+
+simplehist(ppd)
+abline(v = 90, col = "red")
+
+sum(ppd == 9)/length(ppd)
+
+sum(ppd >= 9)/length(ppd)
+```
 
 Guidance Tips
 
@@ -345,3 +485,46 @@ Guidance Tips
 2. Last year's results are this year's expectations.
 3. Are the parameter estimates changing? (way 1)
 4. How does the new data look in last year's predictive posterior? (way 2)
+
+```{r}
+##Changing it into a function
+
+ppd.assessment <- function(list.old.data, list.new.data) { 
+  p_grid <- seq(from = 0,
+                to = 1,
+                length.out = 1e3)
+  
+  prior <- rep(1, length(p_grid))
+  
+  likelihood <- dbinom(list.old.data[1], size = list.old.data[2], prob = p_grid)
+  
+  unstd.posterior <- prior * likelihood
+  
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  posterior %>% plot()
+  
+  samples <- p_grid %>% sample(prob = posterior,
+                               size = 1e4,
+                               replace = T)
+  
+  
+  ppd = rbinom(1e4, size = list.new.data[2], prob = samples)
+  
+  simplehist(ppd)
+  abline(v = list.new.data[1], col = "red")
+  
+  (c(sum(ppd == list.new.data[1]) / length(ppd), sum(ppd >= list.new.data[1]) / length(ppd)))
+}
+
+
+
+
+
+# Riccardo
+old.data <- c(3,6)
+new.data <- c(9,10)
+
+ppd.assessment(old.data, new.data)
+```
+

@@ -37,7 +37,7 @@ Questions:
 pacman::p_load(tidyverse, rethinking)
 ```
 
-### Manually first for overview - making a function after
+### Doing it manually first for overview - making a function after
 ```{r}
 # Defining things
 dens <- 101
@@ -56,15 +56,15 @@ unstd.posterior <- likelihood * prior
 # Standardize the posterior (so it sums to 1)
 posterior <- unstd.posterior / sum(unstd.posterior)
 
-# Making a dataframe and making the plot
+# Making a data frame and making the plot
 d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
 
-ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability")
+ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Knowledge of CogSci")+ ylab("posterior probability") + ggtitle("Posterior distribution - CogSci smartness")
 
-# Calculating the probability of him answering above 50% 
-#sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
-p_over_0.5 #0.48 - før fik vi sådan noget 51, så det virker som om der er noget der bliver udeladt her. Betydning? Evt sæt den til => i stedet for >?
+# Calculating the probability of him answering above 50%. This is an interval of defined boundary. To calculate that we need to simply count up the samples that satisfy the criterion, and then divide with the number of samples.
+p_over_0.5 <- sum(d$posterior[p_grid > 0.5])/sum(d$posterior)
+
+p_over_0.5
 ```
 ## - Then implement a quadratic approximation (hint check paragraph 2.4.2!). N.B. for the rest of the exercise just keep using the grid approximation (we'll move to quadratic approximations in two classes)
 ```{r}
@@ -89,16 +89,15 @@ curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE)
 # Getting values
 p <- curve(dnorm(x,0.5,0.2), lty = 2, add = TRUE)
 
-# BEFORE IT SAID: area_above_50 <- sum(p$y[which(p$x == 0.5)]:length(p$y))/sum(p$y)
 # Calculating the probability of answering above chance
-p_over_0.5 <- sum(p$y[p$x > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
-p_over_0.5 #48, ikke 0.489 NB som ovenover
+p_over_0.5 <- sum(p$y[p$x > 0.5])/sum(p$y)
+
+p_over_0.5 
 ```
-We have a posterior mean value of p = 0.5, it calls it the Mean. Curvature is the sd, of 0.2. Assuming the posterior is Gaussian, it is maximized at 0.50, and its standard deviation is 0.20. 
+We have a posterior mean value of p = 0.5, it calls it the mean. Curvature is the sd, of 0.2. Assuming the posterior is Gaussian, it is maximized at 0.50, and its standard deviation is 0.20. 
 
 # 2. Estimate all the teachers' knowledge of CogSci. Who's best? Use grid approximation. Comment on the posteriors of Riccardo and Mikkel.
-
-### Making a function for finding the posterior probability + area above 50% - but it can be sooo heavily optimized
+### Making a function for finding the posterior probability + area above 50%
 NB: *pre-specify part can be implemented in function but since it will prob be equal in the next points in the assignments I thought meh for now*
 NB: *doesnt have the check of priors, the rbinom one - prob important, say something about it / use it before the function*
 ```{r}
@@ -119,16 +118,16 @@ FindMyPosteriors <- function(correct, total, prior, p_grid) {
     prior = prior,
     likelihood = likelihood)
   
-  p_over_0.5 <- sum(d$posterior[p_grid > 0.5]) #NB I do not divide by the sum here. Reason? Hasnt it already been done? Implement if needed
+  p_over_0.5 <- sum(d$posterior[p_grid > 0.5])/sum(d$posterior)
 
   df = data.frame(p_grid,unstd.posterior,likelihood,posterior,prior,p_over_0.5)
    plot <-
-    ggplot(d, aes(grid, posterior)) + geom_point() + geom_line() + theme_classic() + geom_line(aes(grid, prior /dens), color = 'red') + xlab("Knowledge of CogSci") + ylab("posterior probability") + ggtitle("Plot from function, evt gør noget med paste her med navnene og et loop der går igennem lærerne?")
+    ggplot(d, aes(grid, posterior)) + geom_point() + geom_line() + theme_classic() + geom_line(aes(grid, prior /dens), color = 'red') + xlab("Knowledge of CogSci") + ylab("posterior probability") + ggtitle("Plot from function") # IDE:  evt gør noget med paste her med navnene og et loop der går igennem lærerne?
    
   return(list(df,plot))
 }
 
-# Two tests to see what you will get: access df in object[[1]] and access plot in object[[2]]
+# Two tests to see what the function returns: access df in object[[1]] and access plot in object[[2]]
 t_norm <- FindMyPosteriors(correct = 6,total = 12,prior = dnorm(p_grid, 0.8, 0.2), p_grid)
 t_uniform <- FindMyPosteriors(correct = 6,total = 12,prior <- rep(1 , dens), p_grid)
 
@@ -148,36 +147,38 @@ t_norm[[2]] #plot
 dens = 101
 p_grid = seq(from = 0 , to = 1 , length.out = dens)
 prior = dnorm(p_grid, 0.8,0.2)
-dens(rbinom(1e4, 9, runif(1e4,0,1))) # Checking prior, not sure I understand the numbers here, the 9 fx? wat are you
+dens(rbinom(1e4, 9, runif(1e4,0,1))) # Checking prior, not sure I understand the numbers here, the 9 fx? 9 tosses in the book where we use rbinom to do a posterior predictive check. #simplehist(rbinom(1e4, size = 9, prob = ???)
 ```
 
-
+*NB: HOW TO INTERPRET THE THINGS BELOW?*
+E.g. For Riccardo: 
+It returns a posterior probability of 0.83. That means that what? That there is 84% probability that Riccardos knowledge is over 50%. That is not what is asked though is it? Dont they just ask who is best? 
 ```{r}
 # Riccardo: 3 correct out of 6 total 
 SmarterRiccardo <- FindMyPosteriors(correct = 3,total = 6, prior = prior, p_grid = p_grid)
-SmarterRiccardo[[1]] # 0.83 - Is it right? So that's 83% probability summed up that Riccardos knowledge of CogSci is over 50%? Formulation of this answer instead: is it the same as saying there is 83% probability taking both prior and data into account that Riccardo answers more right than chance level? 
-SmarterRiccardo[[2]]+ggtitle("Smarter Riccardo's knowledge of CogSci") # I want a line put at the above 50 level, preferably that it fills out the area
+SmarterRiccardo[[1]] 
+SmarterRiccardo[[2]]+ggtitle("Smarter Riccardo's knowledge of CogSci") 
 
 # Kristian: 2 correct out of 2 total (gets bored)
 SmarterTylén <- FindMyPosteriors(correct = 2, total = 2, prior = prior, p_grid = p_grid)
-SmarterTylén[[1]] # p_over_5: 0.97. Is it right? Makes sense? 
+SmarterTylén[[1]] 
 SmarterTylén[[2]]+ggtitle("Smarter Tylén's knowledge of CogSci")
 
 # Daina: 160 correct out of 198 questions (never gets bored)
 SmarterDaina <- FindMyPosteriors(correct = 160, total = 198, prior = prior, p_grid = p_grid)
-SmarterDaina[[1]] # p_over 50 = 1
+SmarterDaina[[1]] 
 SmarterDaina[[2]]+ggtitle("Smarter Daina's knowledge of CogSci") #wow
 
 # Mikkel: 66 correct answers out of 132 questions (Mikkel: He's just like us)
 SmarterMikkel <- FindMyPosteriors(correct = 66, total = 132, prior = prior, p_grid = p_grid)
-SmarterMikkel[[1]] #p_over_50 = 0.57
+SmarterMikkel[[1]] 
 SmarterMikkel[[2]]+ggtitle("Smarter Mikkel's knowledge of CogSci")
 ```
 
 ## 3a. Produce plots of the prior and posterior for each teacher.
 Already been done a bit above, but here is a grid: 
 ```{r}
-# Collecting the plots in a PlotGrid
+# Collecting the plots in a grid
 Smarter_teachers <-
   cowplot::plot_grid(
     SmarterRiccardo[[2]] + ggtitle("Smarter Riccardo"),
@@ -191,8 +192,8 @@ Smarter_teachers
 
 # 4 . You go back to your teachers and collect more data (multiply the previous numbers by 100). Calculate their knowledge with both a uniform prior and a normal prior with a mean of 0.8 and a standard deviation of 0.2. Do you still see a difference between the results? Why?
 ```{r}
-# Uniform prior
-dens = 101 # arbitrary number - what do we wanna put? 
+# Uniform prior and a lot of data
+dens = 101 
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
 
@@ -222,7 +223,7 @@ uniform_teachers <-
   )
 uniform_teachers
 
-# Making them with regular data and uniform priors to compare
+# Uniform prior and regular amount of data
 dens = 101 
 p_grid <- seq(from = 0 , to = 1 , length.out = dens)
 prior <- rep(1 , dens)
@@ -256,9 +257,35 @@ uniform_reg_teachers
 cowplot::plot_grid(uniform_teachers,uniform_reg_teachers)
 ```
 5. Imagine you're a skeptic and think your teachers do not know anything about CogSci, given the content of their classes. How would you operationalize that belief?
+*THOUGHTS:* + *i havent done any posterior predictive checks*
+Setting a prior equal to 0? If our prior is that 0% knowledge is probable. We will give our "golem" the information state of 0 before the data. An initial confidence in each possible value of p at 0. 
 
+Can be done like: 
+
+OR maybe just not setting any prior
+
+Setting a prior means that we give the "golem" an information state before the data. We will say that values of 0 are more plausible than 1's. We could do this by saying we want more values below 50 e.g.? Yes? 
+
+We want a prior that says there is higher probability of teacher knowing 0% than 100%. Before, where we set a prior to numbers between 0-1 we said that the probability of the knowledge of CogSci was equal for all values of p. In other words, we did not know anything about their knowledge prior to the data collection. 
+
+prior = dnorm(p_grid, 0.8,0.2) was used to set their knowledge at some point...
+
+We could assign zero probability to all values over 0.5.
 ```{r}
+# Uniform prior of 0 knowledge below 50%. 
+dens = 202
+p_grid <- seq(from = 0 , to = 1 , length.out = dens)
+prior <- ifelse(p_grid > 0.5, 0, 1)
 
+YouKnowNothingRiccardoSnow <- FindMyPosteriors(correct = 3,total = 6, prior = prior, p_grid = p_grid)
+YouKnowNothingRiccardoSnow[[1]]
+YouKnowNothingRiccardoSnow[[2]]+ggtitle("Uniform prior of 0 - Teacher background check") 
+
+YouKnowNothingRiccardoSnow <- FindMyPosteriors(correct = 300,total = 600, prior = prior, p_grid = p_grid)
+YouKnowNothingRiccardoSnow[[1]]
+YouKnowNothingRiccardoSnow[[2]]+ggtitle("Uniform prior of 0 - Teacher background check - more data") 
+
+# Trying something else 
 ```
 
 6. Optional question: Can you estimate the difference between Riccardo's estimated knowledge and that of each of the other teachers? Would you deem it credible (that is, would you believe that it is actually different)? 
@@ -295,65 +322,3 @@ Guidance Tips
 
 
 
-
-
-
-
-
-##### 
-```{r}
-# # OLD OLD OLD OLD OLD BUT DONT DELETE JUST YET
-# # Equal for all: dens <- 101
-# p_grid <- seq(from = 0 , to = 1 , length.out = dens)
-# prior <- rep(1 , dens)
-# dens(rbinom(1e4, 9, runif(1e4, 0, 1))) 
-
-# # Riccardo: 3 correct answers out of 6 questions
-# likelihood <- dbinom(3 , size = 6 , prob = p_grid) #creates a binomial distribution using that he answered 6 out of 9. 
-# unstd.posterior <- likelihood * prior
-# posterior <- unstd.posterior / sum(unstd.posterior)
-# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-# smarter_riccardo <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Riccardo's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("AMAZING 4-PLOTS - BUT NOW")
-# 
-# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-# 
-# # Kristian: 2 correct answers out of 2 questions (then he gets bored)
-# likelihood <- dbinom(2 , size = 2 , prob = p_grid) 
-# unstd.posterior <- likelihood * prior
-# posterior <- unstd.posterior / sum(unstd.posterior)
-# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-# smarter_tylen <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Tylén's knowledge of CogSci")+ ylab("posterior probability")+ggtitle("THEY'RE SMARTER (WE ASSUME...")
-# 
-# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-# 
-# # Daina: 160 correct answers out of 198 questions (Daina never gets bored)
-# likelihood <- dbinom(160 , size = 198 , prob = p_grid)
-# unstd.posterior <- likelihood * prior
-# posterior <- unstd.posterior / sum(unstd.posterior)
-# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-# smarter_daina <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Daina's knowledge of CogSci")+ ylab("posterior probability")
-# 
-# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-# 
-# # Mikkel: 66 correct answers out of 132 questions
-# likelihood <- dbinom(66 , size = 132 , prob = p_grid)
-# unstd.posterior <- likelihood * prior
-# posterior <- unstd.posterior / sum(unstd.posterior)
-# d <- data.frame(grid = p_grid, posterior = posterior, prior = prior, likelihood = likelihood)
-# smarter_mikkel <- ggplot(d, aes(grid,posterior)) + geom_point() +geom_line()+theme_classic()+ geom_line(aes(grid, prior/dens),color= 'red')+ xlab("Smarter Mikkel's knowledge of CogSci")+ ylab("posterior probability")
-# 
-# # Calculating the probability of him answering above 50%. First looking for 50% mark, then summing up from there to find area under the curve: 
-# sum(d$posterior[which(d$grid == 0.5):101])/sum(d$posterior)
-# 
-# # PlotGrid
-# smarter_teachers <- cowplot::plot_grid(smarter_riccardo,smarter_tylen,smarter_daina,smarter_mikkel)
-# smarter_teachers
-# ```
-# ```{r}
-# # Comparing prior_dumb and prior_smart
-# teachers
-# smarter_teachers
-```
