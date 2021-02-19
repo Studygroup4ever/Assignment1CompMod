@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(pacman)
 
-p_load(rethinking, tidyverse, ggplot2, cowplot)
+p_load(rethinking, tidyverse, ggplot2, cowplot,scales,gridExtra,grid)
 ```
 
 ## In this assignment we learn how to assess rates from a binomial distribution, using the case of assessing your teachers' knowledge of CogSci
@@ -371,7 +371,11 @@ Guidance Tips
 4. How does the new data look in last year's predictive posterior? (way 2)
 
 ```{r}
-ppd.assessment <- function(list.old.data, list.new.data) { 
+ppd.assessment <- function(list.old.data, list.new.data, name) { 
+  
+  # Saving name to use in the plot
+  name <- as.character(name)
+  
   # Defining p_grid
   p_grid <- seq(from = 0,
                 to = 1,
@@ -401,14 +405,18 @@ ppd.assessment <- function(list.old.data, list.new.data) {
   ppd = rbinom(1e4, size = list.new.data[2], prob = samples)
   
   # Plotting the PPD
-  simplehist(ppd)
-  abline(v = list.new.data[1], col = "red")
+  plot_ppd <- qplot(ppd, geom = "histogram",binwidth=0.1)+
+    geom_vline(xintercept = list.new.data[1], color = "red")+
+    scale_x_continuous(breaks = pretty_breaks())+
+    labs(y= "Frequency", x = name)+
+    theme_linedraw()
   
   # Extracting the chance of seeing the specific value + the value or above + lower than the value given the posterior from the old data
-  (c(sum(ppd == list.new.data[1]) / length(ppd), 
-     sum(ppd >= list.new.data[1]) / length(ppd), 
-     sum(ppd < list.new.data[1]) / length(ppd)))
-  
+print(c(sum(ppd == list.new.data[1]) / length(ppd), 
+  sum(ppd >= list.new.data[1]) / length(ppd), 
+  sum(ppd < list.new.data[1]) / length(ppd)))
+
+plot_ppd
 }
 
 ```
@@ -419,24 +427,26 @@ ppd.assessment <- function(list.old.data, list.new.data) {
 old.data <- c(3, 6)
 new.data <- c(9, 10)
 
-ppd.assessment(old.data, new.data)
+ric_ppd <- ppd.assessment(old.data, new.data,"Riccardo")
 
 # Kristian
 old.data <- c(2, 2)
 new.data <- c(8, 12)
 
-ppd.assessment(old.data, new.data)
+kris_ppd <- ppd.assessment(old.data, new.data,"Kristian")
 
 # Daina
 old.data <- c(160, 198)
 new.data <- c(148, 172)
 
-ppd.assessment(old.data, new.data)
+daina_ppd <- ppd.assessment(old.data, new.data,"Daina")
 
 # Mikkel
 old.data <- c(66, 132)
 new.data <- c(34, 65)
 
-ppd.assessment(old.data, new.data)
+mikkel_ppd <- ppd.assessment(old.data, new.data,"Mikkel")
 
+# Arranging PPD plots for all teachers into one plot
+grid.arrange(ric_ppd,mikkel_ppd,kris_ppd,daina_ppd,ncol=2, nrow=2,top = textGrob("PPD for each teacher",gp=gpar(fontsize=18,font=3)))
 ```
